@@ -1,0 +1,64 @@
+body{
+    background-color:whitesmoke;
+}
+.container{
+    margin:10px auto;
+    padding:50px;
+    width: 300px;
+    border-radius: 20px;
+    animation: popup 0.4s ease-in-out; 
+}
+@keyframes popup {
+    from{
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to{
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+h2
+{
+   color: white;
+   margin-left: 10%;
+}
+#submit{
+    margin: 40px;
+    height: 40px;
+    width: 70px;
+    border-radius: 20px;
+    border-width: 0;
+    margin-left: 30%;
+}
+#sign{
+    height: 20px;
+    width: 70px;
+    border-radius: 20px;
+    margin-left: 45%;
+}
+#userid,#password,#password1,#password2{
+    margin-left:15%;
+    height: 30px;
+    size: 50px;
+    border-radius: 20px;
+    padding-left:20px;
+    font-size: medium;
+    border-width: 0;
+}
+.sign{
+    text-decoration: underline;
+    cursor: pointer;
+}
+.smallbox{
+    transition: all 0.2s ease-in-out;
+}
+.smallbox:hover{
+   transform: scale(1.05);
+}
+.subissuebox{
+     transition: all 0.2s ease-in-out;
+}
+.subissuebox:hover{
+   transform: scale(1.05);
+}

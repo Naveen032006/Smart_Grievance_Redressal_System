@@ -1,0 +1,49 @@
+#subcol{
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    max-width: 90vw;
+    overflow-x:auto ;
+    margin-left: 5%;
+    gap:20px;
+    border-radius: 10px;
+    padding:10px;
+}
+#complaintinput{
+    display: grid;
+    color:white;
+    height: 90vh; 
+    grid-template-rows: 1fr 1fr;
+    text-align: left;
+    padding :20px;
+    border-radius: 20px;
+}
+#title,#location,#message,#category{
+    border-radius: 20px;
+    padding: 10px;
+}
+#reccomp{
+     padding :5px;
+     border-radius: 20px;
+}
+#image{
+    display: grid;
+    grid-template-rows:1fr 1fr ;
+    padding :20px;
+    border-radius: 20px;
+}
+#img{
+    height: 10%;
+    padding:50px;
+    border-radius: 20px;
+}
+#imgtips{
+    height: 80px;
+    padding:50px;
+    border-radius: 20px;
+}
+#submitComplaint{
+    border-radius: 20px;
+    border-width: 0;
+    padding: 10px;
+    margin-left: 90%;
+}
