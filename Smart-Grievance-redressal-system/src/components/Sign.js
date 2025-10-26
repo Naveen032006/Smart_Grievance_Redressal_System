@@ -1,10 +1,12 @@
 import Color from './Color';
-import { useState } from 'react'; // <-- 1. Import useState
+import { useContext, useState } from 'react'; // <-- 1. Import useState
 import axios from 'axios'; // <-- 2. Import axios
+import { Logincontext } from './logcontext';
 
-const Sign = ({ userdata, loginset }) => {
+const Sign = ({  loginset }) => {
   // 3. Use state for form inputs
-  const [userid, setUserid] = useState("");
+   const{setuserid,userid}=useContext(Logincontext)
+  
   const [pass1, setPass1] = useState("");
   const [pass2, setPass2] = useState("");
 
@@ -34,7 +36,7 @@ const Sign = ({ userdata, loginset }) => {
         localStorage.setItem('token', token);
 
         // 9. Tell App.js to update the state
-        userdata(userid);
+        setuserid(userid);
         loginset(false);
       }
     } catch (error) {
@@ -53,7 +55,7 @@ const Sign = ({ userdata, loginset }) => {
         type="text" 
         placeholder="Enter new user id" 
         value={userid}
-        onChange={(e) => setUserid(e.target.value)}
+        onChange={(e) => setuserid(e.target.value)}
         required 
       />
       <h2>Password:</h2>

@@ -20,6 +20,7 @@ import { IssueBox } from "./issuebox";
     location: "123 Main Street, Downtown",
   }
 ];*/
+    
 const issues=[{
     label: "Broken streetlight on Main Street",
     description: "The streetlight has been broken for over a week, making the area unsafe at night.",

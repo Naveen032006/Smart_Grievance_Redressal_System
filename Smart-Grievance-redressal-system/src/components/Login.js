@@ -1,16 +1,19 @@
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import Sign from './Sign';
 import './log.css';
 import Color from './Color';
 import axios from 'axios'; // <-- 1. Import axios
+import { Logincontext } from './logcontext';
 
-function Login({ userdata, loginset, text, user }) {
-  const [userid, setuserid] = useState("");
+
+function Login({  text, user }) {
+ const{setlogin,setuserid,userid}=useContext(Logincontext)
   const [pass, setpass] = useState("");
 
   // 2. Make this function async to use 'await'
   const handlesubmit = async (e) => {
     e.preventDefault();
+     
 
     // 3. Determine which backend URL to call
     const loginUrl = user
@@ -30,8 +33,11 @@ function Login({ userdata, loginset, text, user }) {
         localStorage.setItem('token', token);
 
         // 6. Tell App.js to update the state (your code already does this)
-        userdata(userid);
-        loginset(false);
+        setuserid(userid);
+        localStorage.setItem("isloggedin","true")
+        setlogin(false)
+        
+        
       }
       
     } catch (error) {
@@ -41,13 +47,13 @@ function Login({ userdata, loginset, text, user }) {
     }
   };
 
-  console.log("userdata prop:", userdata);
-  console.log("login prop:", loginset);
+  console.log("userdata prop:", setuserid);
+ 
 
   const [sign, setsign] = useState(false);
   
   return (
-    sign ? <Sign userdata={userdata} loginset={loginset} /> : (
+    sign ? <Sign loginset={setlogin} /> : (
       <form className="container" style={{ backgroundColor: Color.primary }} onSubmit={handlesubmit}>
         <h2>{text}</h2>
         <input id="userid" type="text" placeholder='Enter user id' onChange={(e) => setuserid(e.target.value)} />

@@ -7,11 +7,12 @@ import Mycomplain from './components/Mycomplain';
 import SubComplain from './components/SubComplain';
 import Analytics from './components/Analytics';
 //import Logcontext from './components/logcontext';
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import { Link, } from 'react-router-dom';
 import Color from './components/Color'
 
 import OverView from './components/OverView';
+import { Logincontext } from './components/logcontext';
 function Header(props){
   const hStyle={
       color:Color.white,
@@ -21,8 +22,9 @@ function Header(props){
   return <h1 style={hStyle}>Hi! {props.title}</h1>
 }
 function App() {
-    const [login,setlogin]=useState(true);
-    const [userid,setuserid]=useState("Login");
+     const{login,setlogin,userid}=useContext(Logincontext)
+   
+   
     const[navi,setnavi]=useState(false);
     const [Overview,setoverview]=useState(true);
     const [scomp,setscomp]=useState(false);
@@ -38,17 +40,21 @@ function App() {
           color:Color.secondary,
       }
       const btStyle={
-          background:Color.secondary,
-          color:Color.primary,
-          width:"5%",
-          marginTop:".5%",
-          height:"50px",
-          flex:"0 1 auto",
-          borderRadius:"25px",
-          borderWidth:"0",
-          cursor:"pointer",
-          fontSize:"100%",
-          marginLeft: "auto",
+         background: Color.secondary,
+  color: Color.primary,
+  padding: "8px 16px",          // flexible spacing instead of fixed width
+  marginTop: ".5%",
+  height: "40px",               // smaller height for better proportions
+  borderRadius: "20px",
+  border: "none",
+  cursor: "pointer",
+  fontSize: "1rem",
+  whiteSpace: "nowrap",         // prevent text wrapping
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  marginLeft: "auto",
+  transition: "0.3s ease",    
       }
 
   return (
@@ -60,8 +66,8 @@ function App() {
       <label className={`user${user?"":" closed"}`} style={{backgroundColor:Color.primary,color:Color.secondary}} onClick={()=>{setuser(true)}}>User</label>
       <label className={`admin${user?" closed":""}`} style={{backgroundColor:Color.primary,color:Color.secondary}} onClick={()=>{setuser(false)}}>Admin</label>
     </div>
-    {user?<Login key="user" userdata={setuserid} loginset={setlogin} text="User id" user={user}/>:
-    <Login key="admin" userdata={setuserid} loginset={setlogin} text="Admin id" user={user}/>
+    {user?<Login key="user"  text="User id" user={user}/>:
+    <Login key="admin" text="Admin id" user={user}/>
     }
     </>
     :
@@ -80,7 +86,7 @@ function App() {
                   <li><Link to='/Ward-Details' style={liStyle}>Ward Details</Link></li>
                   <li><Link to='/Contacts'  style={liStyle}>Contacts</Link></li>
               </ul>
-              <button style={btStyle} className="Submit" onClick={()=>{setlogin(!login)}}>{userid}</button>
+              <button style={btStyle} className="Submit" onClick={()=>{setlogin(!login);localStorage.setItem("isloggedin", "false")}}>{userid}</button>
         </nav>
         {navi && <Nav mycomp={mycomp} setmycomp={setmycomp} analy={analy} setanaly={setanaly} setnavi={setnavi} scomp={scomp} setscomp={setscomp} Overview={Overview} setoverview={setoverview} user={userid} login={login}loginset={setlogin}/>}
         <div className="BodyBody11" style={{opacity:navi?0.5:1}} onClick={()=>{setnavi(false)}}>
@@ -104,7 +110,7 @@ function App() {
                   <li><Link to='/Ward-Details' style={liStyle}>Ward Details</Link></li>
                   <li><Link to='/Contacts'  style={liStyle}>Contacts</Link></li>
               </ul>
-              <button style={btStyle} className="Submit" onClick={()=>{setlogin(!login)}}>{userid}</button>
+              <button style={btStyle} className="Submit" onClick={()=>{setlogin(!login);localStorage.setItem("isloggedin", "false")}}>{userid}</button>
         </nav>
         {navi && <Nav mycomp={mycomp} setmycomp={setmycomp} analy={analy} setanaly={setanaly} setnavi={setnavi} scomp={scomp} setscomp={setscomp} Overview={Overview} setoverview={setoverview} user={userid} login={login}loginset={setlogin}/>}
         <div className="BodyBody11" style={{opacity:navi?0.5:1}} onClick={()=>{setnavi(false)}}>
