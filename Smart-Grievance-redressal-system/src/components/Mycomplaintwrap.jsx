@@ -1,6 +1,5 @@
 import { Paper, Typography } from "@mui/material";
 import { Mycomplainbox } from "./mycomplaintbox";
-import download from "./download.jpeg";
 import { useState } from "react";
 
 export function Mycomplainwrap({ role, issues }) {

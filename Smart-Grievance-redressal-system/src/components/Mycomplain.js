@@ -17,6 +17,28 @@ const Mycomplain = ({ role, issues }) => {
   const [category, setCategory] = useState("");
   const [status, setStatus] = useState("");
   const [order, setOrder] = useState("Newest First");
+  // Inside your Mycomplain component, before rendering Mycomplainwrap
+  const filteredIssues = issues
+    .filter((issue) => {
+      // Filter by complaintId (partial match)
+      if (complaintId && !issue._id.includes(complaintId)) return false;
+
+      // Filter by category
+      if (category && issue.category !== category) return false;
+
+      // Filter by status
+      if (status && issue.status !== status) return false;
+
+      return true;
+    })
+    .sort((a, b) => {
+      // Sort by date
+      const dateA = new Date(a.createdAt);
+      const dateB = new Date(b.createdAt);
+
+      if (order === "Newest First") return dateB - dateA;
+      else return dateA - dateB; // Oldest First
+    });
 
   return (
     <div style={mStyle}>
@@ -89,7 +111,7 @@ const Mycomplain = ({ role, issues }) => {
           category={category}
           status={status}
           order={order}
-          issues={issues}
+          issues={filteredIssues}
         />
       </Box>
     </div>

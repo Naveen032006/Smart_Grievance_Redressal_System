@@ -11,7 +11,7 @@ function Nav({ section, setSection, setnavi, login, loginset, role }) {
     transition: "all 0.2s ease-in-out",
     fontSize: "12px",
   });
-
+  const text = role === "user" ? "My Complaints" : "All Complaints";
   return (
     <div className="verticalNav" style={{ backgroundColor: Color.white }}>
       <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
@@ -44,7 +44,7 @@ function Nav({ section, setSection, setnavi, login, loginset, role }) {
           style={navItemStyle("mycomplain")}
           onClick={() => setSection("mycomplain")}
         >
-          My Complaints
+          {text}
         </li>
         <li
           className={`anal ${section === "analytics" ? "open" : ""}`}
