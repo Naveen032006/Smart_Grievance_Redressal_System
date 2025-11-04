@@ -24,6 +24,7 @@ function App() {
   const [role, setRole] = useState("user");
   const [navOpen, setNavOpen] = useState(false);
   const title = role === "Admin" ? "Welcome, Resolver" : "Welcome Citizen";
+
   const buttonStyle = {
     background: color.secondary,
     color: color.primary,

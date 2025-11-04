@@ -141,4 +141,22 @@ const getIssueById = async (req, res) => {
   }
 };
 
-export { addIssue, getAllIssues, getIssueById, registerUser, loginUser };
+// API for getting the logged-in user's issues
+const getMyIssues = async (req, res) => {
+  try {
+    // 1. Get the user's ID from the token (via authMiddleware)
+    const userId = req.user.id;
+
+    // 2. Find only the issues where the 'user' field matches this ID
+    const issues = await issueModel.find({ user: userId }).sort({ createdAt: -1 });
+
+    res.json({ success: true, data: issues });
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ success: false, message: "Error fetching user's issues" });
+  }
+};
+
+
+export { addIssue, getAllIssues, getIssueById, registerUser, loginUser, getMyIssues };

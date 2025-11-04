@@ -101,6 +101,7 @@ const SubComplain = ({ issues }) => {
               <option value="Water Supply">Water Supply</option>
               <option value="Electricity">Electricity</option>
               <option value="Roads">Roads</option>
+              <option value="Corporation">Corporation</option>
             </select>
             <h4>Location</h4>
             <input

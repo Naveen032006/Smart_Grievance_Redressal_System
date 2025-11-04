@@ -3,9 +3,10 @@ import Color from "./Color";
 import { Header } from "./heading";
 import "./Mycomplain.css";
 import { Mycomplainwrap } from "./Mycomplaintwrap";
-import { useState } from "react"; // <-- Import useState
+import { useState, useEffect } from "react";
+import axios from "axios";
 
-const Mycomplain = ({ role, issues }) => {
+const Mycomplain = ({ role }) => {
   const mStyle = {
     maxHeight: "calc(100vh - 120px)",
     overflowY: "auto",
@@ -18,6 +19,58 @@ const Mycomplain = ({ role, issues }) => {
   const [status, setStatus] = useState("");
   const [order, setOrder] = useState("Newest First");
   // Inside your Mycomplain component, before rendering Mycomplainwrap
+
+  const [issues, setIssues] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch *logged-in* user's issues
+  async function fetchMyIssues() {
+    try {
+      // 1. Get the token you saved during login (e.g., from localStorage)
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        // Handle cases where the user is not logged in
+        console.error("No authorization token found.");
+        throw new Error("User not authenticated.");
+      }
+
+      const response = await axios.get(
+        // 2. Use the new, protected backend route
+        "http://localhost:4000/api/user/my-issues",
+        {
+          // 3. Send the token in the headers
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const userIssues = response.data?.data ?? [];
+      return userIssues;
+    } catch (err) {
+      console.error(err.response?.data || err.message);
+      throw err;
+    }
+  }
+
+  useEffect(() => {
+    async function loadIssues() {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await fetchMyIssues();
+        setIssues(data);
+      } catch (err) {
+        setError("Failed to fetch issues");
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadIssues();
+  }, []);
+
   const filteredIssues = issues
     .filter((issue) => {
       // Filter by complaintId (partial match)
@@ -39,6 +92,8 @@ const Mycomplain = ({ role, issues }) => {
       if (order === "Newest First") return dateB - dateA;
       else return dateA - dateB; // Oldest First
     });
+
+  console.log(issues);
 
   return (
     <div style={mStyle}>
