@@ -5,7 +5,7 @@ import "./Mycomplain.css";
 import { Mycomplainwrap } from "./Mycomplaintwrap";
 import { useState } from "react"; // <-- Import useState
 
-const Mycomplain = ({ role }) => {
+const Mycomplain = ({ role, issues }) => {
   const mStyle = {
     maxHeight: "calc(100vh - 120px)",
     overflowY: "auto",
@@ -89,6 +89,7 @@ const Mycomplain = ({ role }) => {
           category={category}
           status={status}
           order={order}
+          issues={issues}
         />
       </Box>
     </div>

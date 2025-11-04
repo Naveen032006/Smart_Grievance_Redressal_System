@@ -2,7 +2,7 @@ import { Issuesview } from "./issueboxfull";
 import OverHeader from "./OverHeader";
 import { Smallboxview } from "./smallboxfull";
 
-const OverView = ({ user,role }) => {
+const OverView = ({ user, role, issues }) => {
   console.log("Inside Overview");
   const oStyle = {
     maxHeight: "calc(100vh - 120px)",
@@ -16,7 +16,7 @@ const OverView = ({ user,role }) => {
         <OverHeader title={user} />
       </div>
       <Smallboxview />
-      <Issuesview />
+      <Issuesview issues={issues} />
     </div>
   );
 };

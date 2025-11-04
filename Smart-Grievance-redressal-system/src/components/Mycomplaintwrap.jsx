@@ -3,58 +3,7 @@ import { Mycomplainbox } from "./mycomplaintbox";
 import download from "./download.jpeg";
 import { useState } from "react";
 
-export function Mycomplainwrap({ role }) {
-  const issues = [
-    {
-      label: "Broken streetlight on Main Street",
-      description:
-        "The streetlight has been broken for over a week, making the area unsafe at night.",
-      category: "Infrastructure",
-      status: "rejected",
-      priority: "High",
-      date: "1/15/2024",
-      location: "123 Main Street, Downtown",
-      response: "we have arranged a team to sort out the problem",
-      update: true,
-      selectedImage: [download],
-    },
-    {
-      label: "Broken Watertank on Main Street",
-      description:
-        "The Wathertankn has been broken for over a week, making people suffer a lot.",
-      category: "Basic Needs",
-      status: "Pending",
-      priority: "low",
-      date: "20/12/2024",
-      location: "123 Main Street, Downtown",
-      response: "we have arranged a team to sort out the problem",
-      update: true,
-    },
-    {
-      label: "Broken Watertank on Main Street",
-      description:
-        "The Wathertankn has been broken for over a week, making people suffer a lot.",
-      category: "Basic Needs",
-      status: "Pending",
-      priority: "low",
-      date: "20/12/2024",
-      location: "123 Main Street, Downtown",
-      response: "we have arranged a team to sort out the problem",
-      update: false,
-    },
-    {
-      label: "Broken Watertank on Main Street",
-      description:
-        "The Wathertankn has been broken for over a week, making people suffer a lot.",
-      category: "Basic Needs",
-      status: "Pending",
-      priority: "low",
-      date: "20/12/2024",
-      location: "123 Main Street, Downtown",
-      response: "we have arranged a team to sort out the problem",
-      update: false,
-    },
-  ];
+export function Mycomplainwrap({ role, issues }) {
   const [status, setstatus] = useState("");
 
   return (
@@ -78,17 +27,21 @@ export function Mycomplainwrap({ role }) {
           issues.map((issues) => {
             return (
               <Mycomplainbox
-                label={issues.label}
+                label={issues.issueTitle}
                 discription={issues.description}
                 catogory={issues.category}
                 setstatus={setstatus}
                 status={issues.status}
                 priority={issues.priority}
-                date={issues.date}
+                date={new Date(issues.updatedAt).toLocaleDateString("en-IN", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })}
                 location={issues.location}
                 response={issues.response}
                 update={issues.update}
-                selectedImage={issues.selectedImage}
+                selectedImage={issues.image}
                 role={role}
               />
             );

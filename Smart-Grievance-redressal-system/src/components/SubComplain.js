@@ -5,7 +5,7 @@ import { Subissue } from "./subissues";
 import React, { useState, useRef } from "react"; // <-- 1. Import useState and useRef
 import api from "../api"; // <-- 2. Import your api client
 
-const SubComplain = () => {
+const SubComplain = ({ issues }) => {
   const sStyle = {
     maxHeight: "calc(100vh - 120px)",
     overflowY: "auto",
@@ -69,7 +69,7 @@ const SubComplain = () => {
       <div id="subcol">
         <div id="reccomp" style={{ backgroundColor: Color.primary }}>
           <h3 style={{ color: "white" }}>Recent community Issues</h3>
-          <Subissue />
+          <Subissue issues={issues} />
         </div>
 
         {/* --- 6. Changed this from <form> to <div> --- */}

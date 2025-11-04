@@ -14,24 +14,11 @@ import {
   Cell,
 } from "recharts";
 import { useState } from "react";
-export function Alayticswrap() {
+export function Alayticswrap({ categorydata, data }) {
   const [animateKey, setAnimatekey] = useState(0);
   const [animateKey2, setAnimatekey2] = useState(0);
-  const data = [
-    { month: "Jan", complaints: 10, resolved: 8 },
-    { month: "Feb", complaints: 15, resolved: 10 },
-    { month: "Mar", complaints: 12, resolved: 9 },
-    { month: "Apr", complaints: 18, resolved: 15 },
-    { month: "May", complaints: 9, resolved: 8 },
-  ];
+
   const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff7f7f", "#8dd1e1"];
-  const categoryData = [
-    { category: "Road", count: 18 },
-    { category: "Water", count: 14 },
-    { category: "Electricity", count: 22 },
-    { category: "Garbage", count: 10 },
-    { category: "Others", count: 8 },
-  ];
   const report = [
     { title: "Resolution Rate" },
     { title: "Total Submitted" },
@@ -106,7 +93,7 @@ export function Alayticswrap() {
                 <XAxis dataKey="month" />
                 <YAxis />
                 <Tooltip />
-                <Legend />
+                <Legend verticalAlign="top" />
                 <Area
                   type="monotone"
                   dataKey="complaints"
@@ -115,6 +102,7 @@ export function Alayticswrap() {
                   fill="url(#colorComplaints)"
                   isAnimationActive={true}
                   animationDuration={1000}
+                  name="Complaints"
                 />
                 <Area
                   type="monotone"
@@ -124,6 +112,7 @@ export function Alayticswrap() {
                   fill="url(#colorResolved)"
                   isAnimationActive={true}
                   animationDuration={1000}
+                  name="Resolved"
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -132,7 +121,7 @@ export function Alayticswrap() {
             <h3>Issues per category</h3>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
-                data={categoryData}
+                data={categorydata}
                 onClick={() => {
                   triggerAnimation(setAnimatekey2);
                 }}
@@ -147,7 +136,7 @@ export function Alayticswrap() {
                   name="Number of issues"
                   radius={[8, 8, 0, 0]}
                 >
-                  {categoryData.map((entry, index) => (
+                  {categorydata.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
                       fill={COLORS[index % COLORS.length]}

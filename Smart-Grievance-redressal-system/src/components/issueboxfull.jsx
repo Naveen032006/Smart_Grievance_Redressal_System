@@ -1,41 +1,7 @@
 import { Paper, Stack, Typography } from "@mui/material";
 import { IssueBox } from "./issuebox";
 
-import axios from "axios";
-import { useEffect, useState } from "react";
-
-async function fetchAllIssues() {
-  try {
-    const response = await axios.get("http://localhost:4000/api/user/issues");
-
-    // Check if the data structure is as expected
-    console.log("Full API response:", response.data);
-
-    const issues = response.data?.data || [];
-    console.log("Fetched issues:", issues);
-
-    return issues; // ✅ return so you can use it elsewhere
-  } catch (error) {
-    // More detailed error logging
-    if (error.response) {
-      console.error("Server responded with an error:", error.response.data);
-    } else if (error.request) {
-      console.error("No response received from server:", error.request);
-    } else {
-      console.error("Error setting up the request:", error.message);
-    }
-  }
-}
-
-export function Issuesview() {
-  const [issues, setIssues] = useState([]);
-  useEffect(() => {
-    async function loadIssues() {
-      const data = await fetchAllIssues();
-      setIssues(data);
-    }
-    loadIssues();
-  }, []);
+export function Issuesview({ issues }) {
   return (
     <Paper elevation={1} sx={{ borderRadius: "16px", p: 2, m: 2 }}>
       <Typography variant="subtitle1"> Recent Issue</Typography>

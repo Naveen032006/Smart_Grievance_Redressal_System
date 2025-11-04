@@ -57,7 +57,7 @@ export function Mycomplainbox({
       case "rejected":
         return "error";
       default:
-        return "default";
+        return "info";
     }
   };
 
@@ -70,7 +70,7 @@ export function Mycomplainbox({
       case "low":
         return "info";
       default:
-        return "default";
+        return "info";
     }
   };
   const getIcon = (SStatus) => {
