@@ -3,7 +3,7 @@ import Mycomplain from "./Mycomplain";
 import Analytics from "./Analytics";
 import OverView from "./OverView";
 import axios from "axios";
-
+import Resolve from "./Resolve";
 import { useEffect, useState } from "react";
 
 function AdminHome({
@@ -72,6 +72,13 @@ function AdminHome({
             <OverView userid={AdminId} role={role} issues={issues} />
           </div>
         )}
+
+        {section === "resolve" && (
+          <div className="content1">
+            <Resolve AdminId={AdminId} issues={issues} />
+          </div>
+        )}
+
         {section === "mycomplain" && (
           <div className="content2">
             <Mycomplain role={role} issues={issues} />

@@ -25,30 +25,24 @@ const Mycomplain = ({ role }) => {
   const [error, setError] = useState(null);
 
   // Fetch *logged-in* user's issues
-  async function fetchMyIssues() {
+  async function fetchIssues() {
     try {
-      // 1. Get the token you saved during login (e.g., from localStorage)
-      const token = localStorage.getItem("token");
+      if (role === "user") {
+        const token = localStorage.getItem("token");
+        if (!token) throw new Error("User not authenticated.");
 
-      if (!token) {
-        // Handle cases where the user is not logged in
-        console.error("No authorization token found.");
-        throw new Error("User not authenticated.");
+        const res = await axios.get(
+          "http://localhost:4000/api/user/my-issues",
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        return res.data?.data ?? [];
+      } else {
+        const res = await axios.get("http://localhost:4000/api/user/issues");
+        console.log("Admin fetched:", res.data);
+        return res.data?.data ?? [];
       }
-
-      const response = await axios.get(
-        // 2. Use the new, protected backend route
-        "http://localhost:4000/api/user/my-issues",
-        {
-          // 3. Send the token in the headers
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const userIssues = response.data?.data ?? [];
-      return userIssues;
     } catch (err) {
       console.error(err.response?.data || err.message);
       throw err;
@@ -60,7 +54,7 @@ const Mycomplain = ({ role }) => {
       setLoading(true);
       setError(null);
       try {
-        const data = await fetchMyIssues();
+        const data = await fetchIssues();
         setIssues(data);
       } catch (err) {
         setError("Failed to fetch issues");
@@ -69,7 +63,8 @@ const Mycomplain = ({ role }) => {
       }
     }
     loadIssues();
-  }, []);
+  }, [role]);
+
 
   const filteredIssues = issues
     .filter((issue) => {
