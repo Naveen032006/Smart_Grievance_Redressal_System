@@ -1,9 +1,10 @@
-    import validator from "validator"
-    import {v2 as cloudinary} from "cloudinary"
-    import issueModel from "../models/issueModel.js"
-    import userModel from "../models/userModel.js"
-    import jwt from 'jsonwebtoken';
-    import bcrypt from 'bcrypt';
+import validator from "validator"
+import {v2 as cloudinary} from "cloudinary"
+import issueModel from "../models/issueModel.js"
+import userModel from "../models/userModel.js"
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
+import adminModel from "../models/adminModel.js";
 
 // --- Helper function to create a token ---
 const createToken = (userId) => {
@@ -16,33 +17,38 @@ const createToken = (userId) => {
     return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
 };
 
+// API for a logged-in user to get all admin details
+const getAllAdmins = async (req, res) => {
+  try {
+    // Find all admins and remove their passwords
+    const admins = await adminModel.find({}).select('-password');
+    
+    res.json({ success: true, data: admins });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ success: false, message: "Error fetching admins" });
+  }
+};
+
+// --- (registerUser and loginUser functions are the same as you provided) ---
+
 // API for User Registration
 const registerUser = async (req, res) => {
     try {
         const { userid, password } = req.body;
-
-        // 1. Check if user already exists
         const exists = await userModel.findOne({ userid });
         if (exists) {
             return res.status(400).json({ success: false, message: "User ID already exists" });
         }
-
-        // 2. Hash the password
-        const salt = await bcrypt.genSalt(10); // Generate a salt
-        const hashedPassword = await bcrypt.hash(password, salt); // Hash the password
-
-        // 3. Create the new user
+        const salt = await bcrypt.genSalt(10); 
+        const hashedPassword = await bcrypt.hash(password, salt);
         const newUser = new userModel({
             userid: userid,
-            password: hashedPassword // Store the HASHED password
+            password: hashedPassword 
         });
-
-        // 4. Save the user and create a token
         const user = await newUser.save();
         const token = createToken(user._id);
-
         res.json({ success: true, token });
-
     } catch (error) {
         console.log(error);
         res.status(500).json({ success: false, message: "Error during registration" });
@@ -53,23 +59,16 @@ const registerUser = async (req, res) => {
 const loginUser = async (req, res) => {
     try {
         const { userid, password } = req.body;
-
-        // 1. Find the user by their userid
         const user = await userModel.findOne({ userid });
         if (!user) {
             return res.status(404).json({ success: false, message: "User not found" });
         }
-
-        // 2. Compare the provided password with the stored hash
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(400).json({ success: false, message: "Invalid credentials" });
         }
-
-        // 3. If match, create a token
         const token = createToken(user._id);
         res.json({ success: true, token });
-
     } catch (error) {
         console.log(error);
         res.status(500).json({ success: false, message: "Error during login" });
@@ -84,10 +83,9 @@ const addIssue = async (req, res) => {
         const imageFile = req.file;
         
         if(!issueTitle || !category || !location || !description){
-                    return res.json({success:false,message:"Missing Details"})
+                return res.json({success:false,message:"Missing Details"})
             }
         
-        // --- Upload image to cloudinary ---
         const imageUpload = await cloudinary.uploader.upload(imageFile.path, { resource_type: "image" });
         const imageUrl = imageUpload.secure_url;
 
@@ -97,8 +95,6 @@ const addIssue = async (req, res) => {
             location,
             description,
             image: imageUrl,
-            // --- HERE IS THE LINK ---
-            // Get the user's ID from the middleware
             user: req.user.id 
         };
 
@@ -112,10 +108,9 @@ const addIssue = async (req, res) => {
     }
 };
 
-// API for getting all issues
+// --- (getAllIssues, getIssueById, getMyIssues are the same) ---
 const getAllIssues = async (req, res) => {
   try {
-    // Find all issues and sort them (newest first)
     const issues = await issueModel.find({}).sort({ createdAt: -1 });
     res.json({ success: true, data: issues });
   } catch (error) {
@@ -124,34 +119,25 @@ const getAllIssues = async (req, res) => {
   }
 };
 
-// API for getting a single issue by its ID
 const getIssueById = async (req, res) => {
   try {
-    const { id } = req.params; // Get the ID from the URL (e.g., /api/user/issue/12345)
+    const { id } = req.params;
     const issue = await issueModel.findById(id);
-
     if (!issue) {
       return res.status(404).json({ success: false, message: "Issue not found" });
     }
     res.json({ success: true, data: issue });
-
   } catch (error) {
     console.log(error);
     res.status(500).json({ success: false, message: "Error fetching issue" });
   }
 };
 
-// API for getting the logged-in user's issues
 const getMyIssues = async (req, res) => {
   try {
-    // 1. Get the user's ID from the token (via authMiddleware)
     const userId = req.user.id;
-
-    // 2. Find only the issues where the 'user' field matches this ID
     const issues = await issueModel.find({ user: userId }).sort({ createdAt: -1 });
-
     res.json({ success: true, data: issues });
-
   } catch (error) {
     console.log(error);
     res.status(500).json({ success: false, message: "Error fetching user's issues" });
@@ -159,4 +145,44 @@ const getMyIssues = async (req, res) => {
 };
 
 
-export { addIssue, getAllIssues, getIssueById, registerUser, loginUser, getMyIssues };
+// --- ADD THIS NEW FUNCTION ---
+/**
+ * @route   PATCH /api/user/issue/:id/like
+ * @desc    Like an issue
+ * @access  Private
+ */
+const likeIssue = async (req, res) => {
+  try {
+    // Find the issue by its ID
+    const issue = await issueModel.findById(req.params.id);
+
+    if (!issue) {
+      return res.status(404).json({ success: false, message: "Issue not found" });
+    }
+
+    // Use $inc to increment the likeCount by 1
+    const updatedIssue = await issueModel.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { likeCount: 1 } },
+      { new: true } // This returns the updated document
+    );
+
+    res.json({ success: true, likeCount: updatedIssue.likeCount });
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// --- UPDATE YOUR EXPORTS ---
+export { 
+  addIssue, 
+  getAllIssues, 
+  getIssueById, 
+  registerUser, 
+  loginUser, 
+  getMyIssues,
+  getAllAdmins,
+  likeIssue // <-- Export the new function
+};

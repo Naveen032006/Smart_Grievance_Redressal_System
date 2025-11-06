@@ -1,6 +1,6 @@
 import express from 'express';
 // Import your new controller and middleware
-import { loginAdmin, updateIssueStatus,getIssuesForAdmin } from '../controllers/adminController.js';
+import { loginAdmin, updateIssueStatus,getIssuesForAdmin,createEmployee,getAllEmployees,updateEmployeeStatus } from '../controllers/adminController.js';
 import {authMiddleware,adminOnlyMiddleware} from '../middlewares/auth.js';
 
 const adminRouter = express.Router();
@@ -12,5 +12,12 @@ adminRouter.post('/login', loginAdmin);
 // The authMiddleware will run FIRST. If it passes, updateIssueStatus will run next.
 adminRouter.patch('/issue/:id', authMiddleware, adminOnlyMiddleware, updateIssueStatus);
 adminRouter.get('/issues', authMiddleware, adminOnlyMiddleware, getIssuesForAdmin);
+
+// Admin route to create a new employee
+adminRouter.post('/employee', authMiddleware, adminOnlyMiddleware, createEmployee);
+
+adminRouter.get('/employees', authMiddleware, adminOnlyMiddleware, getAllEmployees);
+
+adminRouter.patch('/employee/:id/status', authMiddleware, adminOnlyMiddleware, updateEmployeeStatus);
 
 export default adminRouter;

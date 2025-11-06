@@ -8,17 +8,32 @@ const adminsToCreate = [
   {
     userid: 'admin1',
     password: 'password123', // Plain text password
-    ward: 'Ward1'
+    wardNumber: 100,
+    name: 'Nitin',
+    email: 'nitin11@gmail.com',
+    phone: '9876450123',
+    city: 'Chennai',
+    address: '12 Anna Nagar'
   },
   {
     userid: 'admin2',
     password: 'password234',
-    ward: 'Ward2'
+    wardNumber: 101,
+    name: 'Praveen',
+    email: 'praveen23@gmail.com',
+    phone: '8790654132',
+    city: 'Salem',
+    address: '123 MRN Nagar'
   },
   {
     userid: 'admin3',
     password: 'password345',
-    ward: 'Ward3'
+    wardNumber: 102,
+    name: 'Hari',
+    email: 'hari12@gmail.com',
+    phone: '7638371732',
+    city: 'Trichy',
+    address: '4th avenue Nehru Street'
   }
 ];
 // ---------------------------------
@@ -43,7 +58,12 @@ const seedAdmins = async () => {
       await new adminModel({
         userid: adminData.userid,
         password: hashedPassword,
-        ward: adminData.ward,
+    wardNumber: adminData.wardNumber,
+        name: adminData.name,       
+        email: adminData.email,   
+        phone: adminData.phone,  
+        city: adminData.city,
+        address: adminData.address,   
         role: 'admin'
       }).save();
 
