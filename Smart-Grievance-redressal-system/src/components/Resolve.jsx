@@ -171,7 +171,7 @@ function TakeActionForm({ complaint, onClose }) {
       <DialogContent dividers>
         <Grid container spacing={2} sx={{ pt: 1 }}>
           {/* Update Status */}
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={12}>
             <FormControl fullWidth>
               <InputLabel id="status-select-label">Update Status</InputLabel>
               <Select
@@ -189,7 +189,7 @@ function TakeActionForm({ complaint, onClose }) {
             </FormControl>
           </Grid>
           {/* Assign to Staff */}
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={12}>
             <FormControl fullWidth>
               <InputLabel id="staff-select-label">Assign to Staff</InputLabel>
               <Select
@@ -430,7 +430,7 @@ export default function Resolve({ AdminId, issues }) {
         overflow: "auto",
       }}
     >
-      <Container style={{ marginLeft: "25%" }}>
+      <Container style={{ marginLeft: "10%" }}>
         {" "}
         {/* <--- THIS IS THE CENTERING COMPONENT */}
         <Typography variant="h4" gutterBottom fontWeight="600">
@@ -443,7 +443,7 @@ export default function Resolve({ AdminId, issues }) {
             inside the <Container> */}
         <Grid container spacing={3}>
           {/* Column 1: Complaint List */}
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={12} sx={{ minWidth: "30rem" }}>
             <ComplaintList
               complaints={complaints}
               selectedId={selectedComplaint?._id}
@@ -452,7 +452,7 @@ export default function Resolve({ AdminId, issues }) {
           </Grid>
 
           {/* Column 2: Complaint Detail (and modal) */}
-          <Grid item xs={12} sm={8}>
+          <Grid item xs={12}>
             <ComplaintDetail complaint={selectedComplaint} />
           </Grid>
         </Grid>
