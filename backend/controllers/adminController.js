@@ -1,47 +1,60 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import issueModel from "../models/issueModel.js";
+import adminModel from "../models/adminModel.js";
 
 const loginAdmin = async (req, res) => {
   try {
     const { userid, password } = req.body;
 
-    // 1. Check user ID
-    if (userid === process.env.ADMIN_ID) {
-      // 2. Compare the provided password with the stored hash
-      const isMatch = await bcrypt.compare(
-        password,
-        process.env.ADMIN_PASSWORD_HASH
-      );
-
-      if (isMatch) {
-        // Inside the 'if (isMatch)' block:
-
-        // Create a payload with non-sensitive info
-        const payload = {
-          user: {
-            id: userid,
-            role: "admin",
-          },
-        };
-
-        // Sign the payload
-        const token = jwt.sign(payload, process.env.JWT_SECRET, {
-          expiresIn: "1d", // Good practice to add an expiration
-        });
-
-        res.json({ success: true, token });
-      } else {
-        res
-          .status(401)
-          .json({ success: false, message: "Invalid credentials" }); // <-- Add status
-      }
-    } else {
-      res.status(401).json({ success: false, message: "Invalid credentials" });
+    // 2. Find the admin in the database
+    const admin = await adminModel.findOne({ userid });
+    if (!admin) {
+      return res.status(404).json({ success: false, message: "Admin not found" });
     }
+
+    // 3. Compare the password
+    const isMatch = await bcrypt.compare(password, admin.password);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
+    }
+
+    // 4. Create a payload with the admin's info (INCLUDING THE WARD)
+    const payload = {
+      user: {
+        id: admin._id, // Use the database ID
+        role: admin.role,
+        ward: admin.ward // <-- This is the key
+      },
+    };
+
+    // 5. Sign the payload
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: "1d",
+    });
+
+    res.json({ success: true, token });
+
   } catch (error) {
     console.log(error);
-    res.status(500).json({ success: false, message: error.message }); // <-- Add status
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// API for admin to get issues *for their ward*
+const getIssuesForAdmin = async (req, res) => {
+  try {
+    // Get the admin's ward from the token (put there by authMiddleware)
+    const adminWard = req.user.ward;
+
+    const issues = await issueModel.find({ location: adminWard }) // <-- THE FILTER
+        .populate('user', 'userid') 
+        .sort({ createdAt: -1 });
+
+    res.json({ success: true, data: issues });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ success: false, message: "Error fetching issues" });
   }
 };
 
@@ -51,8 +64,9 @@ const updateIssueStatus = async (req, res) => {
     const { id } = req.params; // Get issue ID from URL
     const { status } = req.body; // Get new status from request body
 
-    // Optional: Validate if the status is one of the allowed values
-    if (!["Pending", "In Progress", "Resolved"].includes(status)) {
+    // --- THIS IS THE ONLY CHANGE ---
+    // Validate if the status is one of the allowed values from the React form
+    if (!["Pending", "In-Progress", "Resolved", "Closed"].includes(status)) {
       return res
         .status(400)
         .json({ success: false, message: "Invalid status value" });
@@ -79,4 +93,4 @@ const updateIssueStatus = async (req, res) => {
 };
 
 // Export the new function
-export { loginAdmin, updateIssueStatus };
+export { loginAdmin, updateIssueStatus, getIssuesForAdmin };
