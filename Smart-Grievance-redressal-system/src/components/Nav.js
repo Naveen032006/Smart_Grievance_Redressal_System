@@ -1,6 +1,7 @@
 import React from "react";
 import Color from "./Color";
 import "./Nav.css";
+import { Staff } from "./Staffmanagement/Staff";
 
 function Nav({ section, setSection, setnavi, login, loginset, role }) {
   console.log(section);
@@ -30,7 +31,7 @@ function Nav({ section, setSection, setnavi, login, loginset, role }) {
           >
             Submit Complaints
           </li>
-        ) : (
+        ) : (<>
           <li
             className={`vnav ${section === "resolve" ? "open" : ""}`}
             style={navItemStyle("resolve")}
@@ -38,6 +39,14 @@ function Nav({ section, setSection, setnavi, login, loginset, role }) {
           >
             Resolve Complaints
           </li>
+          <li
+          className={`anal ${section === "staff" ? "open" : ""}`}
+          style={navItemStyle("staff")}
+          onClick={() => setSection("staff")}
+        >
+          Staff management
+        </li>
+        </>
         )}
         <li
           className={`mycom ${section === "mycomplain" ? "open" : ""}`}
@@ -53,6 +62,7 @@ function Nav({ section, setSection, setnavi, login, loginset, role }) {
         >
           Analytics
         </li>
+       
         <li
           className="logout"
           onClick={() => {

@@ -4,7 +4,9 @@ import Analytics from "./Analytics";
 import OverView from "./OverView";
 import axios from "axios";
 import Resolve from "./Resolve";
+
 import { useEffect, useState } from "react";
+import { Staff } from "./Staffmanagement/Staff";
 
 function AdminHome({
   role,
@@ -87,6 +89,11 @@ function AdminHome({
         {section === "analytics" && (
           <div className="content3">
             <Analytics issues={issues} />
+          </div>
+        )}
+        {section === "staff" && (
+          <div className="content3">
+            <Staff />
           </div>
         )}
       </div>

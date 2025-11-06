@@ -3,7 +3,9 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import DownloadIcon from "@mui/icons-material/Download";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
-export function Header({ title, subtitle, showicon, role }) {
+import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
+
+export function Header({ title, subtitle, showicon, role,addbutton,setOpenDialog}) {
   const icon = (title) => {
     switch (title?.toLowerCase()) {
       case "my complaints":
@@ -21,7 +23,7 @@ export function Header({ title, subtitle, showicon, role }) {
       sx={{
         borderRadius: 3,
         display: "flex",
-        justifyContent: title === "My Complaints" ? "space-between" : "center",
+        justifyContent: title === "My Complaints"||"Staff Management" ? "space-between" : "center",
         alignItems: "center",
         padding: "10px",
         mb: 2,
@@ -52,11 +54,12 @@ export function Header({ title, subtitle, showicon, role }) {
         </Stack>
         <Stack>
           <Typography variant="h5" fontWeight="bold">
-            {role === "user" ? "My Complaints" : "All Complaints"}
+            {role === "user" ? "My Complaints" : title}
           </Typography>
           <Typography variant="body1">{subtitle}</Typography>
         </Stack>
       </Stack>
+      {addbutton&&<Button  variant="contained" color="success" sx={{borderRadius: 2, textTransform: "none"}} startIcon={<PersonAddAlt1Icon/>} onClick={()=>{setOpenDialog(true)}}>Add New Staff</Button>}
       {showicon && (
         <Stack
           direction="row"
