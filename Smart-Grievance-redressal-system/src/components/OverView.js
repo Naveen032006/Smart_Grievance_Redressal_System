@@ -15,7 +15,7 @@ const OverView = ({ user, role, issues }) => {
       >
         <OverHeader title={user} />
       </div>
-      <Smallboxview />
+      <Smallboxview issues={issues}/>
       <Issuesview issues={issues} />
     </div>
   );

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
-import api from '../api'; // <-- 1. IMPORT YOUR API CLIENT
+import api from "../api"; // Your central API client (e.g., axios instance)
+
+// --- MUI Imports ---
 import {
   Box,
   Grid,
@@ -13,7 +15,7 @@ import {
   CardContent,
   Avatar,
   Divider,
-  Container,
+  Container, // Added Container for proper centering and max-width
   CardMedia,
   TextField,
   Button,
@@ -39,6 +41,7 @@ import {
 } from "@mui/icons-material";
 
 // --- Component 1: ComplaintList ---
+// (No changes, this component is good)
 function ComplaintList({ complaints, selectedId, onComplaintSelect }) {
   return (
     <Paper
@@ -105,7 +108,13 @@ function ComplaintList({ complaints, selectedId, onComplaintSelect }) {
                 label={complaint.status}
                 variant="outlined"
                 size="small"
-                color={complaint.status === "Pending" ? "warning" : (complaint.status === "Resolved" ? "success" : "info")}
+                color={
+                  complaint.status === "Pending"
+                    ? "warning"
+                    : complaint.status === "Resolved"
+                    ? "success"
+                    : "info"
+                }
               />
               <Box sx={{ display: "flex", alignItems: "center" }}>
                 <ThumbUpIcon
@@ -123,8 +132,8 @@ function ComplaintList({ complaints, selectedId, onComplaintSelect }) {
   );
 }
 
-// --- Component 2: TakeActionForm (for the modal) ---
-// Now receives 'onUpdate' prop
+// --- Component 2: TakeActionForm ---
+// (No changes, this component is good)
 function TakeActionForm({ complaint, onClose, onUpdate }) {
   const [formData, setFormData] = useState({
     status: complaint.status || "Pending",
@@ -142,14 +151,13 @@ function TakeActionForm({ complaint, onClose, onUpdate }) {
     }));
   };
 
-  // --- 2. UPDATED handleSubmit ---
   const handleSubmit = async () => {
-    // We only send the status, as that's all the API handles
+    // We only send the status, as that's what handleUpdateComplaint expects
     const newStatus = formData.status;
 
-    // Call the function from the parent
+    // Call the onUpdate function (which is handleUpdateComplaint)
     const success = await onUpdate(complaint._id, newStatus);
-    
+
     if (success) {
       onClose(); // Only close the modal if the API call was successful
     }
@@ -192,7 +200,7 @@ function TakeActionForm({ complaint, onClose, onUpdate }) {
               </Select>
             </FormControl>
           </Grid>
-          {/* Assign to Staff */}
+          {/* ... (Rest of your form fields are unchanged) ... */}
           <Grid item xs={12}>
             <FormControl fullWidth>
               <InputLabel id="staff-select-label">Assign to Staff</InputLabel>
@@ -213,7 +221,6 @@ function TakeActionForm({ complaint, onClose, onUpdate }) {
               </Select>
             </FormControl>
           </Grid>
-          {/* Est. Resolution Time */}
           <Grid item xs={12}>
             <TextField
               fullWidth
@@ -224,7 +231,6 @@ function TakeActionForm({ complaint, onClose, onUpdate }) {
               placeholder="e.g., 2-3 days, 1 week"
             />
           </Grid>
-          {/* Action Taken */}
           <Grid item xs={12}>
             <TextField
               fullWidth
@@ -236,7 +242,6 @@ function TakeActionForm({ complaint, onClose, onUpdate }) {
               onChange={handleChange}
             />
           </Grid>
-          {/* Additional Notes */}
           <Grid item xs={12}>
             <TextField
               fullWidth
@@ -267,15 +272,15 @@ function TakeActionForm({ complaint, onClose, onUpdate }) {
   );
 }
 
-// --- Component 3: ComplaintDetail (MODIFIED) ---
-// Receives 'onUpdate' prop
+// --- Component 3: ComplaintDetail ---
+// (No changes, this component is good)
 function ComplaintDetail({ complaint, onUpdate }) {
   const [modalOpen, setModalOpen] = useState(false);
   const handleOpenModal = () => setModalOpen(true);
   const handleCloseModal = () => setModalOpen(false);
 
   if (!complaint) {
-    // ... (Empty state view is the same)
+    // Empty state view
     return (
       <Paper
         sx={{
@@ -300,6 +305,7 @@ function ComplaintDetail({ complaint, onUpdate }) {
     );
   }
 
+  // Selected complaint view
   return (
     <Box
       sx={{
@@ -338,8 +344,8 @@ function ComplaintDetail({ complaint, onUpdate }) {
                     Reported By
                   </Typography>
                   <Typography variant="subtitle2" fontWeight="600">
-                    {/* Use complaint.user.userid (from populate) or "N/A" */}
-                    {complaint.user?.userid || 'N/A'}
+                    {/* Use populated user data if available */}
+                    {complaint.user?.userid || "N/A"}
                   </Typography>
                 </Box>
               </Box>
@@ -405,10 +411,9 @@ function ComplaintDetail({ complaint, onUpdate }) {
         fullWidth
         maxWidth="md"
       >
-        {/* --- 3. PASS onUpdate prop to the form --- */}
-        <TakeActionForm 
-          complaint={complaint} 
-          onClose={handleCloseModal} 
+        <TakeActionForm
+          complaint={complaint}
+          onClose={handleCloseModal}
           onUpdate={onUpdate}
         />
       </Dialog>
@@ -416,75 +421,94 @@ function ComplaintDetail({ complaint, onUpdate }) {
   );
 }
 
-// --- Component 4: The Main Resolve Component ---
-export default function Resolve({ AdminId, issues }) {
+// --- Component 4: The Main Resolve Component (REBUILT) ---
+// This is now the clean "Single Source of Truth" version
+export default function Resolve({ AdminId, issues, onUpdateSuccess }) {
+  // This is the only state this component needs to manage
   const [selectedComplaint, setSelectedComplaint] = useState(null);
 
-  // --- 4. Store 'issues' prop in state so it can be updated ---
-  const [complaints, setComplaints] = useState([]);
-  useEffect(() => {
-    setComplaints(issues || []); // Load initial issues from props
-  }, [issues]); // Re-load if the issues prop changes
+  // REMOVED: const [complaints, setComplaints] = useState([])
+  // We will use the 'issues' prop directly.
 
-  // --- 5. Define the API call function ---
+  /**
+   * This effect keeps the detail view in sync with the master list.
+   * When 'issues' re-fetches from the parent, this finds the new
+   * version of the selected complaint and updates the detail view.
+   */
+  useEffect(() => {
+    if (selectedComplaint) {
+      const newSelected = issues.find((c) => c._id === selectedComplaint._id);
+      setSelectedComplaint(newSelected);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [issues]); // This intentionally runs ONLY when 'issues' prop changes
+
+  /**
+   * This function is passed to the modal.
+   * It handles the API call and then tells the parent (AdminHome)
+   * to re-fetch all data.
+   */
   const handleUpdateComplaint = async (complaintId, newStatus) => {
     try {
-      // Call your backend API (api.js adds the token)
-      const response = await api.patch(`/admin/issue/${complaintId}`, { status: newStatus });
-      
+      const response = await api.patch(`/admin/issue/${complaintId}`, {
+        status: newStatus,
+      });
+
       if (response.data.success) {
-        // Update the complaint in your local state
-        setComplaints(prevComplaints =>
-          prevComplaints.map(c =>
-            c._id === complaintId ? { ...c, status: newStatus } : c
-          )
-        );
-        // Also update the selectedComplaint if it's the one being changed
-        setSelectedComplaint(prev => 
-          prev?._id === complaintId ? { ...prev, status: newStatus } : prev
-        );
+        // SUCCESS!
+        // 1. Tell AdminHome to re-fetch all issues
+        onUpdateSuccess();
+
+        // 2. Alert the user
         alert("Status updated!");
-        return true; // Tell the form it was a success
+        return true; // Tell the form it was a success (so it can close)
+      } else {
+        alert(response.data.message || "Update failed.");
+        return false;
       }
     } catch (error) {
       console.error("Failed to update status:", error);
       alert(error.response?.data?.message || "Update failed");
-      return false; // Tell the form it failed
+      return false; // Tell the form it failed (so it stays open)
     }
   };
-  
+
   return (
     <Box
       sx={{
         p: 3,
         backgroundColor: "#f4f6f8",
-        maxHeight: "100vh",
+        height: "calc(100vh - 120px)", // Adjusted height
         overflow: "auto",
       }}
     >
-      <Container style={{ marginLeft: "10%" }}>
+      {/* Container provides max-width and centering, no more 'marginLeft' */}
+      <Container maxWidth="xl" sx={{ marginLeft: "10%" }}>
         <Typography variant="h4" gutterBottom fontWeight="600">
           Resolve Complaints
         </Typography>
         <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
           Review complaint details and take action to resolve citizen issues
         </Typography>
+
+        {/* This is the responsive layout grid */}
         <Grid container spacing={3}>
           {/* Column 1: Complaint List */}
-          <Grid item xs={12} sx={{ minWidth: "30rem" }}>
+          {/* On mobile (xs), it's 12 cols. On small screens (sm) and up, it's 5. */}
+          <Grid item xs={12} sm={5} md={4} sx={{ minWidth: "30rem" }}>
             <ComplaintList
-              complaints={complaints} // <-- Use state
+              complaints={issues} // Use the 'issues' prop directly
               selectedId={selectedComplaint?._id}
               onComplaintSelect={setSelectedComplaint}
             />
           </Grid>
 
           {/* Column 2: Complaint Detail (and modal) */}
-          <Grid item xs={12}>
-            {/* --- 6. Pass the update function down --- */}
-            <ComplaintDetail 
-              complaint={selectedComplaint} 
-              onUpdate={handleUpdateComplaint}
+          {/* On mobile (xs), it's 12 cols. On small screens (sm) and up, it's 7. */}
+          <Grid item xs={12} sm={7} md={8} sx={{ minWidth: "40rem" }}>
+            <ComplaintDetail
+              complaint={selectedComplaint}
+              onUpdate={handleUpdateComplaint} // Pass down the update function
             />
           </Grid>
         </Grid>

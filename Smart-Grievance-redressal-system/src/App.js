@@ -5,11 +5,13 @@ import Contact from "./components/contactDetails/Contact";
 import UserHome from "./components/userHome";
 import AdminHome from "./components/AdminHome";
 import Login from "./components/Login";
-import { Routes, Route } from "react-router-dom";
+// --- 1. IMPORT useLocation ---
+import { Routes, Route, useLocation } from "react-router-dom";
 import { useState } from "react";
 import Ward from "./components/warddetails/Ward";
 
 function Header(props) {
+  // ... (Header function is unchanged)
   const hStyle = {
     color: color.white,
     textAlign: "center",
@@ -25,7 +27,14 @@ function App() {
   const [navOpen, setNavOpen] = useState(false);
   const title = role === "Admin" ? "Welcome, Resolver" : "Welcome Citizen";
 
+  // --- 2. GET THE CURRENT LOCATION ---
+  const location = useLocation();
+
+  // --- 3. DEFINE PATHS TO HIDE THE HAMBURGER ON ---
+  const hideHamburgerOn = ["/Ward-Details", "/Contacts"];
+
   const buttonStyle = {
+    // ... (buttonStyle is unchanged)
     background: color.secondary,
     color: color.primary,
     width: "5%",
@@ -38,8 +47,10 @@ function App() {
     fontSize: "100%",
     marginLeft: "auto",
   };
+
   return login ? (
     <>
+      {/* ... (Login screen is unchanged) ... */}
       <div id="toggle">
         <label
           className={`user${role === "user" ? "" : " closed"}`}
@@ -75,14 +86,17 @@ function App() {
           maxWidth: "100vw",
         }}
       >
-        <div
-          className={`hamburger ${navOpen ? "navi" : ""}`}
-          onClick={() => setNavOpen(!navOpen)}
-        >
-          <div className="line" style={{ background: color.secondary }}></div>
-          <div className="line" style={{ background: color.secondary }}></div>
-          <div className="line" style={{ background: color.secondary }}></div>
-        </div>
+        {/* --- 4. WRAP THE HAMBURGER IN A CONDITION --- */}
+        {!hideHamburgerOn.includes(location.pathname) && (
+          <div
+            className={`hamburger ${navOpen ? "navi" : ""}`}
+            onClick={() => setNavOpen(!navOpen)}
+          >
+            <div className="line" style={{ background: color.secondary }}></div>
+            <div className="line" style={{ background: color.secondary }}></div>
+            <div className="line" style={{ background: color.secondary }}></div>
+          </div>
+        )}
 
         <Hnav />
 
@@ -121,7 +135,7 @@ function App() {
             )
           }
         />
-        <Route path="/ward-details" element={<Ward />} />
+        <Route path="/Ward-Details" element={<Ward />} />
         <Route path="/Contacts" element={<Contact />} />
       </Routes>
     </div>

@@ -4,7 +4,7 @@ import Analytics from "./Analytics";
 import OverView from "./OverView";
 import axios from "axios";
 import Resolve from "./Resolve";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 function AdminHome({
   role,
@@ -19,19 +19,14 @@ function AdminHome({
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  async function fetchAdminIssues() {
+  const loadIssues = useCallback(async () => {
+    console.log("Re-fetching issues...");
+    setLoading(true);
     try {
       const response = await axios.get("http://localhost:4000/api/user/issues");
-
-      // Check if the data structure is as expected
-      console.log("Full API response:", response.data);
-
       const issues = response.data?.data || [];
-      console.log("Fetched issues:", issues);
-
-      return issues; // ✅ return so you can use it elsewhere
+      setIssues(issues);
     } catch (error) {
-      // More detailed error logging
       if (error.response) {
         console.error("Server responded with an error:", error.response.data);
       } else if (error.request) {
@@ -39,15 +34,15 @@ function AdminHome({
       } else {
         console.error("Error setting up the request:", error.message);
       }
+    } finally {
+      setLoading(false);
     }
-  }
+  }, []); // Empty dependency array means this function itself never changes
+
+  // 3. Your useEffect now just calls the function on mount
   useEffect(() => {
-    async function loadIssues() {
-      const data = await fetchAdminIssues();
-      setIssues(data);
-    }
     loadIssues();
-  }, []);
+  }, [loadIssues]);
 
   return (
     <div className="AdminBody">
@@ -75,7 +70,11 @@ function AdminHome({
 
         {section === "resolve" && (
           <div className="content1">
-            <Resolve AdminId={AdminId} issues={issues} />
+            <Resolve
+              AdminId={AdminId}
+              issues={issues}
+              onUpdateSuccess={loadIssues}
+            />
           </div>
         )}
 
