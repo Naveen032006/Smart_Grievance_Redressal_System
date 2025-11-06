@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Grid,
@@ -12,8 +12,20 @@ import {
   CardContent,
   Avatar,
   Divider,
-  Container, // Import Container for centered layout
-  CardMedia, // Import CardMedia for the image
+  Container,
+  CardMedia,
+  TextField,
+  Button,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  // --- New Imports for Modal ---
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
 } from "@mui/material";
 import {
   Assignment as AssignmentIcon,
@@ -21,59 +33,20 @@ import {
   Person as PersonIcon,
   CalendarToday as CalendarTodayIcon,
   ThumbUp as ThumbUpIcon,
+  Upgrade as UpgradeIcon,
+  Close as CloseIcon, // For the modal close button
+  Edit as EditIcon, // For the "Take Action" button
 } from "@mui/icons-material";
 
-// --- UPDATED Mock Data (matching your JSON structure) ---
-const complaintsData = [
-  {
-    _id: "690a1ec1a490f42e8b6fbaa7",
-    issueTitle: "Mosquito",
-    description: "Due to heavy rain there is lot of mosquito",
-    location: "Tindivanam",
-    status: "Pending",
-    category: "Electricity",
-    likeCount: 0,
-    image:
-      "https://res.cloudinary.com/dthyvjza8/image/upload/v1762270912/fbyl7bnnraifnnjen3pk.jpg",
-    user: { name: "Rohan Gupta" }, // Simulating populated user data
-    createdAt: "2025-11-04T15:41:53.076Z",
-  },
-  {
-    _id: "690a1ec1a490f42e8b6fbaa8",
-    issueTitle: "Noisy construction site at night",
-    description:
-      "Constant noise after 10 PM from the new building site. It is violating city ordinances.",
-    location: "Ward 5",
-    status: "Pending",
-    category: "Noise",
-    likeCount: 3,
-    image: "", // Example with no image
-    user: { name: "Anita Sharma" },
-    createdAt: "2025-11-03T08:15:00.000Z",
-  },
-  {
-    _id: "690a1ec1a490f42e8b6fbaa9",
-    issueTitle: "Park playground equipment damaged",
-    description:
-      "The main swing set is broken and the slide has sharp edges. It is unsafe for children.",
-    location: "Sunrise Park, Ward 2",
-    status: "In-Progress",
-    category: "Parks",
-    likeCount: 3,
-    image:
-      "https://res.cloudinary.com/dthyvjza8/image/upload/v1762270912/fbyl7bnnraifnnjen3pk.jpg", // Re-using image for demo
-    user: { name: "Priya Patel" },
-    createdAt: "2025-11-01T14:00:00.000Z",
-  },
-];
+// --- MOCK DATA ---
 
-// --- 1. The Left-Side List Component (UPDATED) ---
+// --- Component 1: ComplaintList ---
 function ComplaintList({ complaints, selectedId, onComplaintSelect }) {
   return (
     <Paper
       elevation={2}
       sx={{
-        maxHeight: "calc(100vh - 120px)",
+        maxHeight: "calc(100vh - 220px)",
         overflow: "auto",
         borderRadius: 4,
       }}
@@ -82,10 +55,10 @@ function ComplaintList({ complaints, selectedId, onComplaintSelect }) {
         <Typography variant="h6">Complaints Queue</Typography>
       </Box>
       <List disablePadding>
-        {complaints.map((complaint) => (
+        {(complaints || []).map((complaint) => (
           <ListItemButton
-            key={complaint._id} // Use _id
-            selected={selectedId === complaint._id} // Use _id
+            key={complaint._id}
+            selected={selectedId === complaint._id}
             onClick={() => onComplaintSelect(complaint)}
             sx={{
               borderBottom: "1px solid #eee",
@@ -94,6 +67,7 @@ function ComplaintList({ complaints, selectedId, onComplaintSelect }) {
               py: 1.5,
             }}
           >
+            {/* ... (rest of list item code is the same) ... */}
             <Box
               sx={{
                 width: "100%",
@@ -103,22 +77,21 @@ function ComplaintList({ complaints, selectedId, onComplaintSelect }) {
               }}
             >
               <Typography variant="body2" color="text.secondary">
-                {/* Format createdAt date */}
                 {new Date(complaint.createdAt).toLocaleDateString()}
               </Typography>
               <Chip
-                label={complaint.category} // Use category
+                label={complaint.category}
                 color="primary"
                 variant="outlined"
                 size="small"
               />
             </Box>
             <ListItemText
-              primary={complaint.issueTitle} // Use issueTitle
+              primary={complaint.issueTitle}
               primaryTypographyProps={{ fontWeight: "600", mb: 0.5 }}
               secondary={
                 <Typography variant="body2" color="text.secondary">
-                  {complaint.location} {/* Use location */}
+                  {complaint.location}
                 </Typography>
               }
             />
@@ -132,7 +105,7 @@ function ComplaintList({ complaints, selectedId, onComplaintSelect }) {
               }}
             >
               <Chip
-                label={complaint.status} // Use status
+                label={complaint.status}
                 variant="outlined"
                 size="small"
                 color={complaint.status === "Pending" ? "warning" : "info"}
@@ -142,7 +115,7 @@ function ComplaintList({ complaints, selectedId, onComplaintSelect }) {
                   sx={{ fontSize: 14, color: "text.secondary", mr: 0.5 }}
                 />
                 <Typography variant="body2" color="text.secondary">
-                  {complaint.likeCount} community support {/* Use likeCount */}
+                  {complaint.likeCount} community support
                 </Typography>
               </Box>
             </Box>
@@ -153,8 +126,153 @@ function ComplaintList({ complaints, selectedId, onComplaintSelect }) {
   );
 }
 
-// --- 2. The Right-Side Detail Component (UPDATED) ---
+// --- Component 2: TakeActionForm (for the modal) ---
+// This is the form, now designed to live inside the modal
+function TakeActionForm({ complaint, onClose }) {
+  const [formData, setFormData] = useState({
+    status: complaint.status || "Pending",
+    assignTo: "Unassigned",
+    resolutionTime: "",
+    actionTaken: "",
+    notes: "",
+  });
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = () => {
+    // In a real app, you'd send this data to your API
+    console.log("Form Submitted:", formData);
+    onClose(); // Close the modal after submit
+  };
+
+  return (
+    <>
+      <DialogTitle>
+        Take Action: {complaint.issueTitle}
+        <IconButton
+          aria-label="close"
+          onClick={onClose}
+          sx={{
+            position: "absolute",
+            right: 8,
+            top: 8,
+            color: (theme) => theme.palette.grey[500],
+          }}
+        >
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+      <DialogContent dividers>
+        <Grid container spacing={2} sx={{ pt: 1 }}>
+          {/* Update Status */}
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth>
+              <InputLabel id="status-select-label">Update Status</InputLabel>
+              <Select
+                labelId="status-select-label"
+                name="status"
+                value={formData.status}
+                label="Update Status"
+                onChange={handleChange}
+              >
+                <MenuItem value={"Pending"}>Pending</MenuItem>
+                <MenuItem value={"In-Progress"}>In-Progress</MenuItem>
+                <MenuItem value={"Resolved"}>Resolved</MenuItem>
+                <MenuItem value={"Closed"}>Closed</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          {/* Assign to Staff */}
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth>
+              <InputLabel id="staff-select-label">Assign to Staff</InputLabel>
+              <Select
+                labelId="staff-select-label"
+                name="assignTo"
+                value={formData.assignTo}
+                label="Assign to Staff"
+                onChange={handleChange}
+              >
+                <MenuItem value={"Unassigned"}>Unassigned</MenuItem>
+                <MenuItem value={"Team Alpha (Roads)"}>
+                  Team Alpha (Roads)
+                </MenuItem>
+                <MenuItem value={"Team Bravo (Sanitation)"}>
+                  Team Bravo (Sanitation)
+                </MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          {/* Est. Resolution Time */}
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              name="resolutionTime"
+              label="Estimated Resolution Time"
+              value={formData.resolutionTime}
+              onChange={handleChange}
+              placeholder="e.g., 2-3 days, 1 week"
+            />
+          </Grid>
+          {/* Action Taken */}
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              name="actionTaken"
+              label="Action Taken"
+              required
+              multiline
+              rows={4}
+              value={formData.actionTaken}
+              onChange={handleChange}
+            />
+          </Grid>
+          {/* Additional Notes */}
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              name="notes"
+              label="Additional Notes (Optional)"
+              multiline
+              rows={3}
+              value={formData.notes}
+              onChange={handleChange}
+            />
+          </Grid>
+        </Grid>
+      </DialogContent>
+      <DialogActions sx={{ p: 2 }}>
+        <Button onClick={onClose} color="primary">
+          Cancel
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          variant="contained"
+          color="success"
+          startIcon={<UpgradeIcon />}
+        >
+          Update Complaint
+        </Button>
+      </DialogActions>
+    </>
+  );
+}
+
+// --- Component 3: ComplaintDetail (MODIFIED) ---
+// Now holds the detail cards AND the modal
 function ComplaintDetail({ complaint }) {
+  // State to manage the modal's open/close status
+  const [modalOpen, setModalOpen] = useState(false);
+
+  const handleOpenModal = () => setModalOpen(true);
+  const handleCloseModal = () => setModalOpen(false);
+
   // --- This is the Empty State View ---
   if (!complaint) {
     return (
@@ -185,13 +303,11 @@ function ComplaintDetail({ complaint }) {
   return (
     <Box
       sx={{
-        height: "calc(100vh - 120px)",
-        overflow: "auto",
+        maxHeight: "calc(100vh - 220px)",
       }}
     >
-      {/* Card 1: Complaint Details (UPDATED) */}
+      {/* Card 1: Complaint Details */}
       <Card sx={{ mb: 2, borderRadius: 4 }}>
-        {/* Show image if it exists */}
         {complaint.image && (
           <CardMedia
             component="img"
@@ -212,6 +328,7 @@ function ComplaintDetail({ complaint }) {
           </Typography>
           <Divider sx={{ mb: 2 }} />
           <Grid container spacing={2}>
+            {/* ... (rest of detail grid is the same) ... */}
             <Grid item xs={12} sm={6}>
               <Box sx={{ display: "flex", alignItems: "center" }}>
                 <Avatar sx={{ bgcolor: "primary.light", mr: 1.5 }}>
@@ -222,7 +339,7 @@ function ComplaintDetail({ complaint }) {
                     Reported By
                   </Typography>
                   <Typography variant="subtitle2" fontWeight="600">
-                    {complaint.user.name} {/* Accessing simulated user name */}
+                    {complaint.user.name}
                   </Typography>
                 </Box>
               </Box>
@@ -237,7 +354,6 @@ function ComplaintDetail({ complaint }) {
                     Reported On
                   </Typography>
                   <Typography variant="subtitle2" fontWeight="600">
-                    {/* Format createdAt to full date/time */}
                     {new Date(complaint.createdAt).toLocaleString()}
                   </Typography>
                 </Box>
@@ -262,70 +378,86 @@ function ComplaintDetail({ complaint }) {
         </CardContent>
       </Card>
 
-      {/* Card 2: Take Action (STUB) */}
+      {/* Card 2: Take Action Button */}
       <Card sx={{ mb: 2, borderRadius: 4 }}>
         <CardContent>
-          <Typography variant="h6" gutterBottom>
+          <Button
+            variant="contained"
+            color="primary"
+            fullWidth
+            startIcon={<EditIcon />}
+            onClick={handleOpenModal} // This opens the modal
+          >
             Take Action
-          </Typography>
-          <Typography color="text.secondary">
-            (Your form fields like Assign Team, Resolution Time, etc. would go
-            here)
-          </Typography>
+          </Button>
         </CardContent>
       </Card>
 
-      {/* Card 3: Activity Timeline (STUB) */}
+      {/* Card 3: Activity Timeline (Stub) */}
       <Card sx={{ borderRadius: 4 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Activity Timeline
-          </Typography>
-        </CardContent>
+        <CardContent></CardContent>
       </Card>
+
+      {/* --- THE MODAL (DIALOG) --- */}
+      <Dialog
+        open={modalOpen}
+        onClose={handleCloseModal}
+        fullWidth
+        maxWidth="md" // Makes the modal wider
+      >
+        <TakeActionForm complaint={complaint} onClose={handleCloseModal} />
+      </Dialog>
     </Box>
   );
 }
 
-// --- 3. The Main Dashboard Component (UPDATED with <Container>) ---
+// --- Component 4: The Main Resolve Component (FIXED 2-COLUMN LAYOUT) ---
+// This is the correct Resolve component from my LAST response
+// (the one with the modal)
+
 export default function Resolve({ AdminId, issues }) {
   const [selectedComplaint, setSelectedComplaint] = useState(null);
 
+  // Use the local mock data
+  const complaints = issues;
+
   return (
-    // This Box provides the overall background color
     <Box
       sx={{
         p: 3,
         backgroundColor: "#f4f6f8",
-        maxHeight: "calc(100vh - 140px)",
+        maxHeight: "100vh",
         overflow: "auto",
       }}
     >
-      {/* This Container centers the content and adds max-width */}
-      <Container maxWidth="xxl">
+      <Container style={{ marginLeft: "25%" }}>
+        {" "}
+        {/* <--- THIS IS THE CENTERING COMPONENT */}
         <Typography variant="h4" gutterBottom fontWeight="600">
           Resolve Complaints
         </Typography>
         <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
           Review complaint details and take action to resolve citizen issues
         </Typography>
-
-        <Grid container width={1000} spacing={3}>
-          {/* Left Column */}
-          <Grid item xs={12} md={4}>
+        {/* This 2-column grid is CENTERED because it is
+            inside the <Container> */}
+        <Grid container spacing={3}>
+          {/* Column 1: Complaint List */}
+          <Grid item xs={12} sm={6}>
             <ComplaintList
-              complaints={issues}
-              selectedId={selectedComplaint?.id}
+              complaints={complaints}
+              selectedId={selectedComplaint?._id}
               onComplaintSelect={setSelectedComplaint}
             />
           </Grid>
 
-          {/* Right Column */}
-          <Grid item xs={12} md={8}>
+          {/* Column 2: Complaint Detail (and modal) */}
+          <Grid item xs={12} sm={8}>
             <ComplaintDetail complaint={selectedComplaint} />
           </Grid>
         </Grid>
-      </Container>
+      </Container>{" "}
+      {/* <--- THIS IS THE END of the centering component */}
     </Box>
   );
 }
