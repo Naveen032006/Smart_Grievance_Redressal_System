@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import api from '../api'; // <-- 1. IMPORT YOUR API CLIENT
 import {
   Box,
   Grid,
@@ -20,7 +21,6 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  // --- New Imports for Modal ---
   Dialog,
   DialogTitle,
   DialogContent,
@@ -34,11 +34,9 @@ import {
   CalendarToday as CalendarTodayIcon,
   ThumbUp as ThumbUpIcon,
   Upgrade as UpgradeIcon,
-  Close as CloseIcon, // For the modal close button
-  Edit as EditIcon, // For the "Take Action" button
+  Close as CloseIcon,
+  Edit as EditIcon,
 } from "@mui/icons-material";
-
-// --- MOCK DATA ---
 
 // --- Component 1: ComplaintList ---
 function ComplaintList({ complaints, selectedId, onComplaintSelect }) {
@@ -67,7 +65,6 @@ function ComplaintList({ complaints, selectedId, onComplaintSelect }) {
               py: 1.5,
             }}
           >
-            {/* ... (rest of list item code is the same) ... */}
             <Box
               sx={{
                 width: "100%",
@@ -108,14 +105,14 @@ function ComplaintList({ complaints, selectedId, onComplaintSelect }) {
                 label={complaint.status}
                 variant="outlined"
                 size="small"
-                color={complaint.status === "Pending" ? "warning" : "info"}
+                color={complaint.status === "Pending" ? "warning" : (complaint.status === "Resolved" ? "success" : "info")}
               />
               <Box sx={{ display: "flex", alignItems: "center" }}>
                 <ThumbUpIcon
                   sx={{ fontSize: 14, color: "text.secondary", mr: 0.5 }}
                 />
                 <Typography variant="body2" color="text.secondary">
-                  {complaint.likeCount} community support
+                  {complaint.likeCount || 0} community support
                 </Typography>
               </Box>
             </Box>
@@ -127,8 +124,8 @@ function ComplaintList({ complaints, selectedId, onComplaintSelect }) {
 }
 
 // --- Component 2: TakeActionForm (for the modal) ---
-// This is the form, now designed to live inside the modal
-function TakeActionForm({ complaint, onClose }) {
+// Now receives 'onUpdate' prop
+function TakeActionForm({ complaint, onClose, onUpdate }) {
   const [formData, setFormData] = useState({
     status: complaint.status || "Pending",
     assignTo: "Unassigned",
@@ -145,10 +142,17 @@ function TakeActionForm({ complaint, onClose }) {
     }));
   };
 
-  const handleSubmit = () => {
-    // In a real app, you'd send this data to your API
-    console.log("Form Submitted:", formData);
-    onClose(); // Close the modal after submit
+  // --- 2. UPDATED handleSubmit ---
+  const handleSubmit = async () => {
+    // We only send the status, as that's all the API handles
+    const newStatus = formData.status;
+
+    // Call the function from the parent
+    const success = await onUpdate(complaint._id, newStatus);
+    
+    if (success) {
+      onClose(); // Only close the modal if the API call was successful
+    }
   };
 
   return (
@@ -226,7 +230,6 @@ function TakeActionForm({ complaint, onClose }) {
               fullWidth
               name="actionTaken"
               label="Action Taken"
-              required
               multiline
               rows={4}
               value={formData.actionTaken}
@@ -265,16 +268,14 @@ function TakeActionForm({ complaint, onClose }) {
 }
 
 // --- Component 3: ComplaintDetail (MODIFIED) ---
-// Now holds the detail cards AND the modal
-function ComplaintDetail({ complaint }) {
-  // State to manage the modal's open/close status
+// Receives 'onUpdate' prop
+function ComplaintDetail({ complaint, onUpdate }) {
   const [modalOpen, setModalOpen] = useState(false);
-
   const handleOpenModal = () => setModalOpen(true);
   const handleCloseModal = () => setModalOpen(false);
 
-  // --- This is the Empty State View ---
   if (!complaint) {
+    // ... (Empty state view is the same)
     return (
       <Paper
         sx={{
@@ -299,7 +300,6 @@ function ComplaintDetail({ complaint }) {
     );
   }
 
-  // --- This is the Selected Complaint Detail View ---
   return (
     <Box
       sx={{
@@ -328,7 +328,6 @@ function ComplaintDetail({ complaint }) {
           </Typography>
           <Divider sx={{ mb: 2 }} />
           <Grid container spacing={2}>
-            {/* ... (rest of detail grid is the same) ... */}
             <Grid item xs={12} sm={6}>
               <Box sx={{ display: "flex", alignItems: "center" }}>
                 <Avatar sx={{ bgcolor: "primary.light", mr: 1.5 }}>
@@ -339,7 +338,8 @@ function ComplaintDetail({ complaint }) {
                     Reported By
                   </Typography>
                   <Typography variant="subtitle2" fontWeight="600">
-                    {complaint.user.name}
+                    {/* Use complaint.user.userid (from populate) or "N/A" */}
+                    {complaint.user?.userid || 'N/A'}
                   </Typography>
                 </Box>
               </Box>
@@ -386,7 +386,7 @@ function ComplaintDetail({ complaint }) {
             color="primary"
             fullWidth
             startIcon={<EditIcon />}
-            onClick={handleOpenModal} // This opens the modal
+            onClick={handleOpenModal}
           >
             Take Action
           </Button>
@@ -403,24 +403,56 @@ function ComplaintDetail({ complaint }) {
         open={modalOpen}
         onClose={handleCloseModal}
         fullWidth
-        maxWidth="md" // Makes the modal wider
+        maxWidth="md"
       >
-        <TakeActionForm complaint={complaint} onClose={handleCloseModal} />
+        {/* --- 3. PASS onUpdate prop to the form --- */}
+        <TakeActionForm 
+          complaint={complaint} 
+          onClose={handleCloseModal} 
+          onUpdate={onUpdate}
+        />
       </Dialog>
     </Box>
   );
 }
 
-// --- Component 4: The Main Resolve Component (FIXED 2-COLUMN LAYOUT) ---
-// This is the correct Resolve component from my LAST response
-// (the one with the modal)
-
+// --- Component 4: The Main Resolve Component ---
 export default function Resolve({ AdminId, issues }) {
   const [selectedComplaint, setSelectedComplaint] = useState(null);
 
-  // Use the local mock data
-  const complaints = issues;
+  // --- 4. Store 'issues' prop in state so it can be updated ---
+  const [complaints, setComplaints] = useState([]);
+  useEffect(() => {
+    setComplaints(issues || []); // Load initial issues from props
+  }, [issues]); // Re-load if the issues prop changes
 
+  // --- 5. Define the API call function ---
+  const handleUpdateComplaint = async (complaintId, newStatus) => {
+    try {
+      // Call your backend API (api.js adds the token)
+      const response = await api.patch(`/admin/issue/${complaintId}`, { status: newStatus });
+      
+      if (response.data.success) {
+        // Update the complaint in your local state
+        setComplaints(prevComplaints =>
+          prevComplaints.map(c =>
+            c._id === complaintId ? { ...c, status: newStatus } : c
+          )
+        );
+        // Also update the selectedComplaint if it's the one being changed
+        setSelectedComplaint(prev => 
+          prev?._id === complaintId ? { ...prev, status: newStatus } : prev
+        );
+        alert("Status updated!");
+        return true; // Tell the form it was a success
+      }
+    } catch (error) {
+      console.error("Failed to update status:", error);
+      alert(error.response?.data?.message || "Update failed");
+      return false; // Tell the form it failed
+    }
+  };
+  
   return (
     <Box
       sx={{
@@ -431,21 +463,17 @@ export default function Resolve({ AdminId, issues }) {
       }}
     >
       <Container style={{ marginLeft: "10%" }}>
-        {" "}
-        {/* <--- THIS IS THE CENTERING COMPONENT */}
         <Typography variant="h4" gutterBottom fontWeight="600">
           Resolve Complaints
         </Typography>
         <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
           Review complaint details and take action to resolve citizen issues
         </Typography>
-        {/* This 2-column grid is CENTERED because it is
-            inside the <Container> */}
         <Grid container spacing={3}>
           {/* Column 1: Complaint List */}
           <Grid item xs={12} sx={{ minWidth: "30rem" }}>
             <ComplaintList
-              complaints={complaints}
+              complaints={complaints} // <-- Use state
               selectedId={selectedComplaint?._id}
               onComplaintSelect={setSelectedComplaint}
             />
@@ -453,11 +481,14 @@ export default function Resolve({ AdminId, issues }) {
 
           {/* Column 2: Complaint Detail (and modal) */}
           <Grid item xs={12}>
-            <ComplaintDetail complaint={selectedComplaint} />
+            {/* --- 6. Pass the update function down --- */}
+            <ComplaintDetail 
+              complaint={selectedComplaint} 
+              onUpdate={handleUpdateComplaint}
+            />
           </Grid>
         </Grid>
-      </Container>{" "}
-      {/* <--- THIS IS THE END of the centering component */}
+      </Container>
     </Box>
   );
 }

@@ -51,8 +51,9 @@ const updateIssueStatus = async (req, res) => {
     const { id } = req.params; // Get issue ID from URL
     const { status } = req.body; // Get new status from request body
 
-    // Optional: Validate if the status is one of the allowed values
-    if (!["Pending", "In Progress", "Resolved"].includes(status)) {
+    // --- THIS IS THE ONLY CHANGE ---
+    // Validate if the status is one of the allowed values from the React form
+    if (!["Pending", "In-Progress", "Resolved", "Closed"].includes(status)) {
       return res
         .status(400)
         .json({ success: false, message: "Invalid status value" });
