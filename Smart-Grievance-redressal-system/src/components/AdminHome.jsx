@@ -31,7 +31,7 @@ function AdminHome({
     try {
       // 4. Use Promise.all to fetch issues and employees in parallel
       const [issuesRes, employeesRes] = await Promise.all([
-        api.get("/user/issues"),    // <-- Use protected admin endpoint
+        api.get("/admin/issues"),    // <-- Use protected admin endpoint
         api.get("/admin/employees") // <-- Fetch employees
       ]);
 

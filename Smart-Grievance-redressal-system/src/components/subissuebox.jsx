@@ -88,7 +88,7 @@ export function SubissueBox({ issue, onLikeToggle }) {
       </Stack>
 
       <Stack sx={{ padding: "2px", mt: 1 }}>
-        <Typography variant="caption" noWrap>
+        <Typography variant="caption" Wrap>
           {description}
         </Typography>
       </Stack>

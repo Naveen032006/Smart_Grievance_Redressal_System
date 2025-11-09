@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Paper, Avatar, Chip, Typography, Divider } from "@mui/material";
 import {
   Phone,
@@ -11,65 +11,105 @@ import {
   WaterDrop,
   Delete,
 } from "@mui/icons-material";
-import api from "../../api"; // Make sure path is correct (e.g., ../../api)
+import api from "../../api"; // Your protected API client
+import axios from "axios"; // Plain axios for public routes
 
 // Helper to get the correct icon for staff
 const getDeptIcon = (dept) => {
   switch (dept) {
-    case 'Water Supply':
-      return <WaterDrop sx={{ color: "#0ea5e9" }} />;
-    case 'Electricity':
-      return <Bolt sx={{ color: "#facc15" }} />;
-    case 'Sanitation':
-      return <Delete sx={{ color: "#10b981" }} />;
-    case 'Infrastructure':
-      return <Apartment sx={{ color: "#a855f7" }} />;
-    default:
-      return <Person sx={{ color: "#6b7280" }} />;
+    case 'Water Supply': return <WaterDrop sx={{ color: "#0ea5e9" }} />;
+    case 'Electricity': return <Bolt sx={{ color: "#facc15" }} />;
+    case 'Sanitation': return <Delete sx={{ color: "#10b981" }} />;
+    case 'Infrastructure': return <Apartment sx={{ color: "#a855f7" }} />;
+    default: return <Person sx={{ color: "#6b7280" }} />;
   }
 };
 
 function Ward() {
-  const [admin, setAdmin] = useState(null);
-  const [employees, setEmployees] = useState([]);
-  const [stats, setStats] = useState(null);
+  const [admin, setAdmin] = useState(null); // For the user's specific ward admin
+  const [allIssues, setAllIssues] = useState([]); // For global stats
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchWardDetails = async () => {
       try {
-        // Use Promise.all to fetch all 3 endpoints in parallel
-        const [adminRes, employeeRes, statsRes] = await Promise.all([
-          api.get("/user/my-ward-admin"),
-          api.get("/user/my-ward-employees"),
-          api.get("/user/my-ward-stats")
+        // Fetch the user's specific admin (protected) and all issues (public)
+        const [adminRes, allIssuesRes] = await Promise.all([
+          api.get("/user/my-ward-admin"), // Protected route
+          axios.get("http://localhost:4000/api/user/issues") // Public route
         ]);
 
         if (adminRes.data.success) {
           setAdmin(adminRes.data.data);
         } else {
-          // If admin fails, set an error
           setError("Could not load Ward Admin details.");
         }
 
-        if (employeeRes.data.success) {
-          setEmployees(employeeRes.data.data);
-        }
-        
-        if (statsRes.data.success) {
-          setStats(statsRes.data.data);
+        if (allIssuesRes.data.success) {
+          setAllIssues(allIssuesRes.data.data);
         }
 
       } catch (err) {
         console.error("Failed to fetch ward details:", err);
-        setError(err.response?.data?.message || "Failed to fetch ward details.");
+        setError(err.response?.data?.message || "Failed to fetch details.");
       }
       setLoading(false);
     };
 
     fetchWardDetails();
   }, []); // Run once on component load
+
+  // Calculate global stats from the 'allIssues' state
+  const stats = useMemo(() => {
+    const initialCounts = {
+      pending: 0,
+      inProgress: 0,
+      resolved: 0,
+    };
+
+    // Tally counts
+    const statusCounts = allIssues.reduce((acc, complaint) => {
+      switch (complaint.status) {
+        case "Pending":
+          acc.pending++;
+          break;
+        case "In-Progress":
+          acc.inProgress++;
+          break;
+        case "Resolved":
+        case "Closed": // Group Resolved and Closed together
+          acc.resolved++;
+          break;
+        default:
+          break;
+      }
+      return acc;
+    }, initialCounts);
+
+    // Calculate average resolution time
+    const resolvedIssues = allIssues.filter(
+      (c) => c.status === "Resolved" || c.status === "Closed"
+    );
+    let avgResolutionTime = 0;
+    if (resolvedIssues.length > 0) {
+        const totalTime = resolvedIssues.reduce((acc, c) => {
+            const created = new Date(c.createdAt).getTime();
+            const updated = new Date(c.updatedAt).getTime();
+            return acc + (updated - created);
+        }, 0);
+        const avgMs = totalTime / resolvedIssues.length;
+        avgResolutionTime = (avgMs / (1000 * 60 * 60 * 24)).toFixed(1); // In days
+    }
+
+    return {
+      totalComplaints: allIssues.length,
+      pendingComplaints: statusCounts.pending,
+      resolvedTotal: statusCounts.resolved,
+      avgResolutionTime: avgResolutionTime,
+    };
+  }, [allIssues]);
+
 
   if (loading) {
     return (
@@ -88,7 +128,6 @@ function Ward() {
       }}
     >
       <h1 style={{ textAlign: "center" }}>
-        {/* Show ward number if admin is loaded */}
         {admin ? `Ward ${admin.wardNumber} Details` : "Ward Details"}
       </h1>
       <p style={{ textAlign: "center", color: "gray" }}>
@@ -145,7 +184,7 @@ function Ward() {
           </Paper>
         )}
 
-        {/* Ward Statistics Card (Live Data) */}
+        {/* Global Statistics Card (Live Data) */}
         <Paper
           elevation={2}
           sx={{
@@ -155,27 +194,27 @@ function Ward() {
         >
           <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
             <BarChart style={{ color: "#047857" }} />
-            <h3 style={{ margin: 0 }}>Ward Statistics</h3>
+            <h3 style={{ margin: 0 }}>Global Statistics (All Wards)</h3>
           </div>
           
           {stats ? (
             <>
               <div style={{ display: "flex", justifyContent: "space-between", marginTop: "10px" }}>
                 <p>Total Complaints</p>
-                <b>12</b>
+                <b>{stats.totalComplaints}</b>
               </div>
               <hr />
               <div style={{ display: "flex", justifyContent: "space-between", marginTop: "10px" }}>
-                <p>Resolved This Month</p>
-                <Chip label={1} sx={{ bgcolor: "#22c55e", color: "white" }} />
+                <p>Total Resolved</p>
+                <Chip label={stats.resolvedTotal} sx={{ bgcolor: "#22c55e", color: "white" }} />
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", marginTop: "10px" }}>
-                <p>Pending Complaints</p>
-                <Chip label={11} sx={{ bgcolor: "#e5e7eb", color: "black" }} />
+                <p>Total Pending</p>
+                <Chip label={stats.pendingComplaints} sx={{ bgcolor: "#e5e7eb", color: "black" }} />
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", marginTop: "10px" }}>
                 <p>Avg. Resolution Time</p>
-                <b style={{ color: "#059669" }}>{2} days</b>
+                <b style={{ color: "#059669" }}>{stats.avgResolutionTime} days</b>
               </div>
             </>
           ) : (
@@ -184,6 +223,8 @@ function Ward() {
         </Paper>
       </div>
 
+      {/* --- Row 2: Ward Facilities (Mock Data) --- */}
+     
     </div>
   );
 }

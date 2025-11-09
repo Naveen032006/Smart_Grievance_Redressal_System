@@ -2,8 +2,8 @@ import Color from "./Color";
 import { Header } from "./heading";
 import "./subcomp.css";
 import { Subissue } from "./subissues";
-import React, { useState, useRef } from "react"; // <-- 1. Import useState and useRef
-import api from "../api"; // <-- 2. Import your api client
+import React, { useState, useRef, useMemo } from "react"; // <-- 1. Import useMemo
+import api from "../api";
 
 const SubComplain = ({ issues }) => {
   const sStyle = {
@@ -12,24 +12,21 @@ const SubComplain = ({ issues }) => {
     padding: "1rem",
   };
 
-  // --- 3. Create state for every input ---
   const [issueTitle, setIssueTitle] = useState("");
   const [category, setCategory] = useState("");
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
   const [image, setImage] = useState(null);
-  const fileInputRef = useRef(null); // To help reset the file input
+  const fileInputRef = useRef(null);
 
-  // --- 4. Create the submit handler ---
   const handleSubmit = async (e) => {
-    e.preventDefault(); // Stop the page from refreshing
+    e.preventDefault();
 
     if (!image) {
       alert("Please upload an image.");
       return;
     }
 
-    // Use FormData because you're uploading a file
     const formData = new FormData();
     formData.append("issueTitle", issueTitle);
     formData.append("category", category);
@@ -38,19 +35,17 @@ const SubComplain = ({ issues }) => {
     formData.append("image", image);
 
     try {
-      // api.js automatically adds your auth token
       const response = await api.post("/user/add-issue", formData);
 
       if (response.data.success) {
         alert("Complaint submitted successfully!");
-        // Clear the form
         setIssueTitle("");
         setCategory("");
         setLocation("");
         setDescription("");
         setImage(null);
         if (fileInputRef.current) {
-          fileInputRef.current.value = null; // Reset the file input
+          fileInputRef.current.value = null;
         }
       }
     } catch (error) {
@@ -58,8 +53,17 @@ const SubComplain = ({ issues }) => {
     }
   };
 
+  // --- 2. Filter the issues list based on the 'category' state ---
+  const filteredIssues = useMemo(() => {
+    if (!category) {
+      // If category is "" (the "Select a category" default)
+      return issues; // Return the full, unfiltered list
+    }
+    // Otherwise, return only the issues that match the selected category
+    return issues.filter((issue) => issue.category === category);
+  }, [category, issues]); // Re-filter when category or issues change
+
   return (
-    // --- 5. Add onSubmit to the main form ---
     <form style={sStyle} onSubmit={handleSubmit}>
       <Header
         title="Submit Complaints"
@@ -69,17 +73,15 @@ const SubComplain = ({ issues }) => {
       <div id="subcol">
         <div id="reccomp" style={{ backgroundColor: Color.primary }}>
           <h3 style={{ color: "white" }}>Recent community Issues</h3>
-          <Subissue issues={issues} />
+
+          {/* --- 3. Pass the new 'filteredIssues' list --- */}
+          <Subissue issues={filteredIssues} />
         </div>
 
-        {/* --- 6. Changed this from <form> to <div> --- */}
         <div id="complaintinput" style={{ backgroundColor: Color.primary }}>
           <div id="compdet">
-            {" "}
-            {/* <-- Changed from <form> */}
             <h3>Issue details</h3>
             <h4>Issue title*</h4>
-            {/* --- 7. Connect all inputs to state --- */}
             <input
               id="title"
               type="text"
@@ -89,15 +91,14 @@ const SubComplain = ({ issues }) => {
               onChange={(e) => setIssueTitle(e.target.value)}
             />
             <h4>Select a Category*</h4>
+            {/* This dropdown now controls both the form and the filter */}
             <select
               id="category"
               required
               value={category}
               onChange={(e) => setCategory(e.target.value)}
             >
-              <option value="" disabled>
-                -- Select a category --
-              </option>
+              <option value="">-- Select a category --</option>
               <option value="Water Supply">Water Supply</option>
               <option value="Electricity">Electricity</option>
               <option value="Roads">Roads</option>
@@ -115,8 +116,6 @@ const SubComplain = ({ issues }) => {
           </div>
 
           <div>
-            {" "}
-            {/* <-- Changed from <form> */}
             <h3>Description</h3>
             <textarea
               id="message"
@@ -145,7 +144,7 @@ const SubComplain = ({ issues }) => {
               accept="image/*"
               required
               ref={fileInputRef}
-              onChange={(e) => setImage(e.target.files[0])} // Get the file object
+              onChange={(e) => setImage(e.target.files[0])}
             />
             <div
               id="imgtips"
