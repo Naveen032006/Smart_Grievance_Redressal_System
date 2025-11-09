@@ -2,8 +2,7 @@ import { Issuesview } from "./issueboxfull";
 import OverHeader from "./OverHeader";
 import { Smallboxview } from "./smallboxfull";
 
-const OverView = ({ user, role, issues }) => {
-  console.log("Inside Overview");
+const OverView = ({ user, role, issues, onLikeToggle, currentUserId }) => {
   const oStyle = {
     maxHeight: "calc(100vh - 120px)",
     overflowY: "auto",
@@ -15,8 +14,15 @@ const OverView = ({ user, role, issues }) => {
       >
         <OverHeader title={user} />
       </div>
-      <Smallboxview issues={issues}/>
-      <Issuesview issues={issues} />
+      {/* Smallboxview just needs the issues to calculate stats */}
+      <Smallboxview issues={issues} />
+
+      {/* Issuesview needs all props to handle likes */}
+      <Issuesview
+        issues={issues}
+        onLikeToggle={onLikeToggle}
+        userId={currentUserId}
+      />
     </div>
   );
 };

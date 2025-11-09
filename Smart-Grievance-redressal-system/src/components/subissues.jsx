@@ -1,7 +1,7 @@
 import { Paper, Typography } from "@mui/material";
 import { SubissueBox } from "./subissuebox";
 
-export function Subissue({ issues, onLikeToggle }) {
+export function Subissue({ issues, onLikeToggle, userId }) { // <-- Accept userId
   const recentIssues = issues.slice(0, 3);
   return (
     <Paper
@@ -20,7 +20,7 @@ export function Subissue({ issues, onLikeToggle }) {
       >
         <Typography variant="subtitle1"> Recent Sub-Issue</Typography>
         {issues.length === 0 ? (
-          <Typography variant="body1">No issues reported yet.</Typography>
+          <Typography variant="body1">No issues found for this category.</Typography>
         ) : (
           recentIssues.map((issue) => {
             return (
@@ -28,6 +28,7 @@ export function Subissue({ issues, onLikeToggle }) {
                 key={issue._id}
                 issue={issue}
                 onLikeToggle={onLikeToggle}
+                userId={userId} // <-- Pass userId down
               />
             );
           })

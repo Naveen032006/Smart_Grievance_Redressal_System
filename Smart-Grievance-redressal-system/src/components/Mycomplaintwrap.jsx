@@ -1,9 +1,30 @@
 import { Paper, Typography } from "@mui/material";
 import { Mycomplainbox } from "./mycomplaintbox";
-// import { useState } from "react"; // No longer needed
 
-export function Mycomplainwrap({ role, issues }) {
-  // const [status, setstatus] = useState(""); // <-- This state was unused
+export function Mycomplainwrap({
+  role,
+  issues,
+  loading,
+  error,
+  onDelete,
+  onLikeToggle,
+  userId,
+}) {
+  if (loading) {
+    return (
+      <Typography sx={{ textAlign: "center", p: 3 }}>
+        Loading issues...
+      </Typography>
+    );
+  }
+
+  if (error) {
+    return (
+      <Typography color="error" sx={{ textAlign: "center", p: 3 }}>
+        {error}
+      </Typography>
+    );
+  }
 
   return (
     <Paper
@@ -17,35 +38,25 @@ export function Mycomplainwrap({ role, issues }) {
           padding: "10px",
           borderRadius: "16px",
           maxHeight: "400px",
-          overflowY: "scroll",
+          overflowY: "auto",
         }}
       >
         {issues.length === 0 ? (
-          <Typography variant="body1">No issues reported yet.</Typography>
+          <Typography variant="body1" sx={{ textAlign: "center", p: 3 }}>
+            No issues found that match your filters.
+          </Typography>
         ) : (
-          // --- FIX: Renamed 'issues' to 'issue' ---
-          issues.map((issue) => { 
+          // Map over the issues
+          issues.map((issue) => {
             return (
+              // Pass the *entire issue object* and all functions
               <Mycomplainbox
-                key={issue._id} // <-- Add a unique key
-                label={issue.issueTitle}
-                discription={issue.description}
-                catogory={issue.category}
-                // setstatus={setstatus} // You probably don't need this
-                status={issue.status}
-                // priority={issue.priority} // Your issueModel doesn't have this
-                date={new Date(issue.updatedAt).toLocaleDateString("en-IN", {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
-                })}
-                location={issue.location}
-                // response={issue.response} // Your issueModel doesn't have this
-                // update={issue.update} // Your issueModel doesn't have this
-                selectedImage={issue.image}
-                likeCount={issue.likeCount || 0} // Pass likeCount
-                issueId={issue._id} // Pass the ID for liking/updating
+                key={issue._id}
+                issue={issue}
                 role={role}
+                onDelete={onDelete}
+                onLikeToggle={onLikeToggle}
+                userId={userId}
               />
             );
           })

@@ -1,9 +1,8 @@
 import { Box, Chip, Paper, Stack, Typography } from "@mui/material";
 import RoomOutlinedIcon from "@mui/icons-material/RoomOutlined";
 import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
-import "./log.css";
-
-import { LikeButton } from "./likebotton"; // Corrected spelling
+import "./log.css"; // Assuming you have this file
+import { LikeButton } from "./likebotton";
 
 // Helper function
 const getPriorityFromCount = (count = 0) => {
@@ -12,46 +11,45 @@ const getPriorityFromCount = (count = 0) => {
   return { label: "Low", color: "info" };
 };
 
-// It now accepts an 'issue' object and a function
-export function SubissueBox({ issue, onLikeToggle }) {
+export function SubissueBox({ issue, onLikeToggle, userId }) {
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
-      case "pending":
-        return "warning";
-      case "in progress":
-        return "info";
-      case "resolved":
-        return "success";
-      case "rejected":
-        return "error";
-      default:
-        return "info";
+      case "pending": return "warning";
+      case "in-progress": return "info";
+      case "resolved": return "success";
+      case "rejected": return "error";
+      case "closed": return "default";
+      default: return "info";
     }
   };
-  console.log(issue);
-  // Get all values from the 'issue' prop
+
   const {
+    _id,
     issueTitle,
     description,
     category,
     status,
-    date,
+    createdAt,
     location,
     likeCount,
-    userHasLiked, // We need this for the LikeButton
+    likes, // <-- Get the 'likes' array
   } = issue;
 
-  const priority = getPriorityFromCount(likeCount);
+  // Check if the current user's ID is in the issue's 'likes' array
+  const userHasLiked = userId && likes && likes.includes(userId);
 
+  const date = new Date(createdAt).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+
+  const priority = getPriorityFromCount(likeCount || 0);
+  
   return (
     <Paper
       elevation={3}
-      sx={{
-        borderRadius: "12px",
-        p: "12px",
-        mb: 2,
-        maxHeight: 200,
-      }}
+      sx={{ borderRadius: "12px", p: "12px", mb: 2, maxHeight: 200 }}
     >
       <Box
         sx={{
@@ -88,7 +86,7 @@ export function SubissueBox({ issue, onLikeToggle }) {
       </Stack>
 
       <Stack sx={{ padding: "2px", mt: 1 }}>
-        <Typography variant="caption" Wrap>
+        <Typography variant="caption" > 
           {description}
         </Typography>
       </Stack>
@@ -103,13 +101,10 @@ export function SubissueBox({ issue, onLikeToggle }) {
       >
         <Chip label={category} variant="outlined" size="small" />
 
-        {/* Pass the props down to the LikeButton.
-            The button is now fully "controlled" by the parent.
-          */}
         <LikeButton
-          count={issue.likeCount}
-          liked={issue.userHasLiked}
-          onClick={() => onLikeToggle(issue._id, issue.userHasLiked)}
+          count={likeCount || 0}
+          liked={userHasLiked} // Pass the calculated 'liked' status
+          onClick={() => onLikeToggle(_id)} // Call parent function
         />
       </Box>
     </Paper>

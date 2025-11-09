@@ -10,7 +10,7 @@ import {
   DialogContent,
   DialogActions,
   IconButton,
-  TextField,
+  Avatar,
 } from "@mui/material";
 import RoomOutlinedIcon from "@mui/icons-material/RoomOutlined";
 import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
@@ -24,69 +24,76 @@ import RemoveRedEyeOutlinedIcon from "@mui/icons-material/RemoveRedEyeOutlined";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import { useState } from "react";
 import CloseIcon from "@mui/icons-material/Close";
+import { LikeButton } from "./likebotton"; // Import LikeButton
 
+// Accept the 'issue' object and all functions
 export function Mycomplainbox({
-  label,
-  discription,
-  catogory,
-  status,
-  date,
-  location,
-  response,
-  update,
-  selectedImage,
+  issue,
   role,
-  setstatus,
-  likeCount,
+  onDelete,
+  onLikeToggle,
+  userId,
 }) {
   const [pop, setpop] = useState(false);
-  const [SStatus, setSStatus] = useState(status);
-  const [updatepop, setupdatepop] = useState(false);
-  function statushandle(newstatus) {
-    setstatus(newstatus);
-    setSStatus(newstatus);
-  }
+
+  // Destructure all data from the 'issue' prop
+  const {
+    _id,
+    issueTitle,
+    description,
+    category,
+    status,
+    updatedAt,
+    location,
+    actionNotes, // This is the 'response'
+    assignedTo,  // This is the 'assigned staff'
+    image,
+    likeCount,
+    likes,       // For checking if user has liked
+  } = issue;
+
+  // --- Helper Functions ---
   const getcolor = (SStatus) => {
     switch (SStatus?.toLowerCase()) {
-      case "pending":
-        return "warning";
-      case "in progress":
-        return "info";
-      case "resolved":
-        return "success";
-      case "rejected":
-        return "error";
-      default:
-        return "info";
+      case "pending": return "warning";
+      case "in-progress": return "info"; // Match your database
+      case "resolved": return "success";
+      case "rejected": return "error";
+      default: return "info";
     }
   };
 
-  const getPriorityFromCount = (count) => {
-    if (count > 5) {
-      return { label: "High", color: "error" };
-    }
-    if (count > 3) {
-      return { label: "Medium", color: "warning" };
-    }
+  const getPriorityFromCount = (count = 0) => {
+    if (count > 5) return { label: "High", color: "error" };
+    if (count > 3) return { label: "Medium", color: "warning" };
     return { label: "Low", color: "info" };
   };
 
   const getIcon = (SStatus) => {
     switch (SStatus?.toLowerCase()) {
-      case "pending":
-        return AccessTimeIcon;
-      case "in progress":
-        return ReportProblemOutlinedIcon;
-      case "resolved":
-        return DoneOutlineIcon;
-      case "rejected":
-        return CancelIcon;
-      default:
-        return "default";
+      case "pending": return AccessTimeIcon;
+      case "in-progress": return ReportProblemOutlinedIcon;
+      case "resolved": return DoneOutlineIcon;
+      case "rejected": return CancelIcon;
+      default: return AccessTimeIcon;
     }
   };
-  const Icon = getIcon(SStatus);
+  
+  // --- Calculate values from destructured props ---
+  const Icon = getIcon(status);
   const priority = getPriorityFromCount(likeCount);
+  const date = new Date(updatedAt).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+  
+  // Check if the current user has liked this issue
+  const userHasLiked = userId && likes && likes.includes(userId);
+  
+  // This logic determines if the "Management Response" block shows
+  const hasUpdate = actionNotes || assignedTo;
+
   return (
     <>
       <Paper elevation={1} sx={{ borderRadius: "16px", p: 2, m: 2 }}>
@@ -94,16 +101,14 @@ export function Mycomplainbox({
           <Stack direction="row" spacing={1} alignItems="center">
             <Icon color={getcolor(status)} fontSize="small" />
             <Typography variant="h5" fontWeight="bold">
-              {label}
+              {issueTitle}
             </Typography>
           </Stack>
           <Chip
             label={priority.label}
             variant="outlined"
             sx={{
-              textDecoration: "none",
-              backgroundColor: (theme) =>
-                alpha(theme.palette[priority.color].main, 0.8),
+              backgroundColor: (theme) => alpha(theme.palette[priority.color].main, 0.8),
               color: Color.secondary,
             }}
           />
@@ -117,18 +122,16 @@ export function Mycomplainbox({
             <CalendarTodayOutlinedIcon color="disabled" fontSize="small" />
             <Typography variant="body2">{date}</Typography>
           </Stack>
-          <Chip
-            label={catogory}
-            variant="outlined"
-            sx={{ textDecoration: "none" }}
-          />
+          <Chip label={category} variant="outlined" sx={{ textDecoration: "none" }} />
         </Stack>
         <Stack>
           <Typography variant="body1" sx={{ padding: "5px" }}>
-            {discription}
+            {description}
           </Typography>
         </Stack>
-        {update && (
+        
+        {/* Show update based on new logic */}
+        {hasUpdate && (
           <Stack
             spacing={0.5}
             direction="column"
@@ -145,7 +148,7 @@ export function Mycomplainbox({
               Management Response:
             </Typography>
             <Typography variant="caption" sx={{ paddingLeft: 2 }}>
-              {response}
+              {actionNotes || "This issue has been assigned."}
             </Typography>
           </Stack>
         )}
@@ -161,22 +164,9 @@ export function Mycomplainbox({
             label={status}
             color={getcolor(status)}
             variant="filled"
-            sx={{ textDecoration: "none" }}
           />
           <Stack direction="row" spacing={0.5} alignItems="center">
-            {role === "Admin" && (
-              <Button
-                variant="outlined"
-                size="medium"
-                color="secondary"
-                sx={{ borderRadius: 3, textTransform: "none" }}
-                onClick={() => {
-                  setupdatepop(true);
-                }}
-              >
-                Update Status
-              </Button>
-            )}
+            
             <Button
               variant="outlined"
               size="medium"
@@ -185,39 +175,39 @@ export function Mycomplainbox({
               color="info"
               onClick={() => setpop(true)}
             >
-              Veiw details
+              View details
             </Button>
-            <Button
-              variant="outlined"
-              size="medium"
-              sx={{ borderRadius: 3, textTransform: "none" }}
-              startIcon={<CancelOutlinedIcon />}
-              color="error"
-            >
-              cancel
-            </Button>
+            
+            {/* Only show Cancel button if the role is 'user' */}
+            {role === 'user' && (
+              <Button
+                variant="outlined"
+                size="medium"
+                sx={{ borderRadius: 3, textTransform: "none" }}
+                startIcon={<CancelOutlinedIcon />}
+                color="error"
+                onClick={() => onDelete(_id)} // <-- Call the delete function
+                disabled={status !== 'Pending'} // <-- Disable if not pending
+              >
+                Cancel
+              </Button>
+            )}
           </Stack>
         </Box>
       </Paper>
+      
+      {/* --- "View Details" Dialog --- */}
       <Dialog open={pop} onClose={() => setpop(false)} fullWidth maxWidth="sm">
         <DialogTitle>
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <Typography variant="h5" fontWeight="bold" sx={{ color: "black" }}>
-              {label}
+              {issueTitle}
             </Typography>
             <Chip
               label={priority.label}
               variant="outlined"
               sx={{
-                textDecoration: "none",
-                backgroundColor: (theme) =>
-                  alpha(theme.palette[priority.color].main, 0.8),
+                backgroundColor: (theme) => alpha(theme.palette[priority.color].main, 0.8),
                 color: Color.secondary,
               }}
             />
@@ -226,13 +216,11 @@ export function Mycomplainbox({
 
         <DialogContent>
           <Stack spacing={2}>
-            {/* Status and Category */}
             <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
               <Chip label={status} color={getcolor(status)} variant="filled" />
-              <Chip label={catogory} variant="outlined" />
+              <Chip label={category} variant="outlined" />
             </Box>
 
-            {/* Location and Date */}
             <Stack direction="row" spacing={2} alignItems="center">
               <Stack direction="row" spacing={0.5} alignItems="center">
                 <RoomOutlinedIcon color="disabled" fontSize="small" />
@@ -244,36 +232,54 @@ export function Mycomplainbox({
               </Stack>
             </Stack>
 
-            {/* Description */}
             <Box>
               <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                 Description:
               </Typography>
-              <Typography
-                variant="body1"
-                sx={{
-                  padding: "10px",
-                  backgroundColor: "#f5f5f5",
-                  borderRadius: "8px",
-                }}
-              >
-                {discription}
+              <Typography variant="body1" sx={{ padding: "10px", backgroundColor: "#f5f5f5", borderRadius: "8px" }}>
+                {description}
               </Typography>
             </Box>
-            {selectedImage && (
+            
+            {image && (
               <img
-                src={selectedImage}
-                alt="Complaint attachment preview"
+                src={image}
+                alt="Complaint attachment"
                 style={{
                   maxWidth: "100%",
-                  maxHeight: "70vh",
+                  borderRadius: "8px",
                   objectFit: "contain",
                 }}
               />
             )}
 
-            {/* Management Response */}
-            {update && (
+            {/* --- SHOW ASSIGNED STAFF --- */}
+            {assignedTo ? (
+              <Box>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                  Assigned To:
+                </Typography>
+                <Stack direction="row" spacing={1} sx={{ 
+                    backgroundColor: "#f5f5f5",
+                    borderRadius: "8px",
+                    padding: "10px"
+                }}>
+                  <Avatar sx={{ width: 28, height: 28, fontSize: '0.9rem' }}>
+                    {assignedTo.name.split(" ").map((n) => n[0]).join("")}
+                  </Avatar>
+                  <Typography variant="body2" sx={{fontWeight: 500}}>
+                    {assignedTo.name} ({assignedTo.department})
+                  </Typography>
+                </Stack>
+              </Box>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                Not yet assigned to a staff member.
+              </Typography>
+            )}
+
+            {/* --- SHOW RESPONSE NOTES --- */}
+            {actionNotes && (
               <Box>
                 <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                   Management Response:
@@ -288,10 +294,20 @@ export function Mycomplainbox({
                     border: "1px solid #c3b7fcff",
                   }}
                 >
-                  <Typography variant="body2">{response}</Typography>
+                  <Typography variant="body2">{actionNotes}</Typography>
                 </Stack>
               </Box>
             )}
+            
+            {/* --- ADD LIKE BUTTON HERE --- */}
+            <Box sx={{display: 'flex', justifyContent: 'flex-end'}}>
+               <LikeButton
+                count={likeCount || 0}
+                liked={userHasLiked}
+                onClick={() => onLikeToggle(_id)}
+              />
+            </Box>
+
           </Stack>
         </DialogContent>
 
@@ -300,88 +316,6 @@ export function Mycomplainbox({
             Close
           </Button>
         </DialogActions>
-      </Dialog>
-      <Dialog
-        open={updatepop}
-        onClose={() => {
-          setupdatepop(false);
-        }}
-        fullWidth
-        maxWidth="xs"
-      >
-        <Box sx={{ padding: "1rem" }}>
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: "0px",
-            }}
-          >
-            <Typography
-              variant="subtitle1"
-              sx={{ fontWeight: "bold", color: "black" }}
-            >
-              Update Complaint Status
-            </Typography>
-            <IconButton
-              onClick={() => {
-                setupdatepop(false);
-              }}
-            >
-              <CloseIcon />
-            </IconButton>
-          </Box>
-          <Typography variant="caption" sx={{ color: "grey", padding: "0px" }}>
-            Update the Status of Complaint: {label}{" "}
-          </Typography>
-
-          <Stack>
-            <Typography variant="suntitle2" sx={{ padding: "0.5rem" }}>
-              Response (Optional)
-            </Typography>
-            <TextField
-              variant="outlined"
-              label="response"
-              placeholder="Provide the response to the civilian"
-              color="info"
-            ></TextField>
-          </Stack>
-          <Box
-            sx={{
-              padding: "1rem 0.5rem 0.5rem 3rem",
-              display: "flex",
-              justifyContent: "space-between",
-            }}
-          >
-            <Button
-              variant="outlined"
-              sx={{ textTransform: "none" }}
-              size="small"
-              color="error"
-            >
-              {" "}
-              Mark Pending
-            </Button>
-            <Button
-              variant="outlined"
-              sx={{ textTransform: "none" }}
-              size="small"
-            >
-              {" "}
-              Mark in Progress
-            </Button>
-            <Button
-              variant="contained"
-              color="success"
-              sx={{ textTransform: "none" }}
-              size="small"
-            >
-              {" "}
-              Mark Resolved
-            </Button>
-          </Box>
-        </Box>
       </Dialog>
     </>
   );

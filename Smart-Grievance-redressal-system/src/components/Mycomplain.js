@@ -1,13 +1,19 @@
-import { Box } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import Color from "./Color";
 import { Header } from "./heading";
 import "./Mycomplain.css";
 import { Mycomplainwrap } from "./Mycomplaintwrap";
-import { useState, useEffect } from "react";
-// import axios from "axios"; // We don't need axios directly
-import api from "../api"; // <-- 1. Import your API client
+import { useState, useMemo } from "react"; // 1. Removed useEffect, useCallback, api
+import { jwtDecode } from "jwt-decode"; // 2. Import jwt-decode
 
-const Mycomplain = ({ role }) => {
+// 3. Accept all props from UserHome
+const Mycomplain = ({
+  role,
+  issues,
+  onDeleteIssue,
+  onLikeToggle,
+  currentUserId,
+}) => {
   const mStyle = {
     maxHeight: "calc(100vh - 120px)",
     overflowY: "auto",
@@ -20,60 +26,28 @@ const Mycomplain = ({ role }) => {
   const [status, setStatus] = useState("");
   const [order, setOrder] = useState("Newest First");
 
-  // --- States for data (This is all correct) ---
-  const [issues, setIssues] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  // --- 4. REMOVED all data fetching (fetchMyIssues, useEffect) ---
+  // --- 4. REMOVED all handlers (handleDeleteIssue, onLikeToggle) ---
 
-  // --- 2. This fetchIssues function is now fixed ---
-  async function fetchMyIssues() {
-    try {
-      let res;
-      if (role === "user") {
-        // api.js automatically adds the token
-        res = await api.get("/user/my-issues");
-      } else {
-        // api.js adds the token AND calls the correct admin route
-        res = await api.get("/admin/issues");
-      }
-      return res.data?.data ?? [];
-    } catch (err) {
-      console.error(err.response?.data || err.message);
-      throw err;
-    }
-  }
+  // --- 5. Filtering logic (now uses useMemo) ---
+  const filteredIssues = useMemo(() => {
+    // This logic is now simpler. It just filters the 'issues' prop
+    // which is *already* the correct list (either 'my-issues' or 'admin-issues')
+    return issues
+      .filter((issue) => {
+        if (complaintId && !issue._id.includes(complaintId)) return false;
+        if (category && issue.category !== category) return false;
+        if (status && issue.status !== status) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        const dateA = new Date(a.createdAt);
+        const dateB = new Date(b.createdAt);
+        if (order === "Newest First") return dateB - dateA;
+        else return dateA - dateB;
+      });
+  }, [issues, complaintId, category, status, order]); // Re-filters when props or filters change
 
-  useEffect(() => {
-    async function loadIssues() {
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await fetchMyIssues();
-        setIssues(data);
-      } catch (err) {
-        setError("Failed to fetch issues");
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadIssues();
-  }, [role]);
-
-  const filteredIssues = issues
-    .filter((issue) => {
-      if (complaintId && !issue._id.includes(complaintId)) return false;
-      if (category && issue.category !== category) return false;
-      if (status && issue.status !== status) return false;
-      return true;
-    })
-    .sort((a, b) => {
-      const dateA = new Date(a.createdAt);
-      const dateB = new Date(b.createdAt);
-      if (order === "Newest First") return dateB - dateA;
-      else return dateA - dateB;
-    });
-
-  // --- 4. Your render is perfect (no change needed) ---
   return (
     <div style={mStyle}>
       <Header
@@ -86,16 +60,11 @@ const Mycomplain = ({ role }) => {
       {/* --- Filter Bar (all correct) --- */}
       <form
         className="sbar"
-        style={{
-          backgroundColor: Color.primary,
-          height: "100px",
-          display: "flex",
-          borderRadius: "20px",
-          justifyContent: "center",
-          maxWidth: "90%",
-          overflowX: "auto",
-          margin: "20px auto",
-        }}
+        style={
+          {
+            /* ... styles ... */
+          }
+        }
       >
         <input
           id="compid"
@@ -103,7 +72,6 @@ const Mycomplain = ({ role }) => {
           value={complaintId}
           onChange={(e) => setComplaintId(e.target.value)}
         />
-
         <select
           id="options"
           value={category}
@@ -113,10 +81,9 @@ const Mycomplain = ({ role }) => {
           <option value="Water Supply">Water Supply</option>
           <option value="Electricity">Electricity</option>
           <option value="Roads">Roads</option>
-          <option value="Corporation">Corporation</option>
-          {/* Add all your categories here */}
+          <option value="Sanitation">Sanitation</option>
+          <option value="Infrastructure">Infrastructure</option>
         </select>
-
         <select
           id="status"
           value={status}
@@ -124,11 +91,11 @@ const Mycomplain = ({ role }) => {
         >
           <option value="">--All Statuses--</option>
           <option value="Pending">Pending</option>
-          <option value="In Progress">In Progress</option>
+          <option value="In-Progress">In-Progress</option>
           <option value="Resolved">Resolved</option>
           <option value="Rejected">Rejected</option>
+          <option value="Closed">Closed</option>
         </select>
-
         <select
           id="arrange"
           value={order}
@@ -140,10 +107,15 @@ const Mycomplain = ({ role }) => {
       </form>
 
       <Box sx={{ overflowY: "auto" }}>
+        {/* --- 6. Pass all props down to the wrapper --- */}
         <Mycomplainwrap
           role={role}
-          // Pass the filtered list to the child
           issues={filteredIssues}
+          loading={false} // Loading is handled by parent
+          error={null} // Error is handled by parent
+          onDelete={onDeleteIssue}
+          onLikeToggle={onLikeToggle}
+          userId={currentUserId}
         />
       </Box>
     </div>

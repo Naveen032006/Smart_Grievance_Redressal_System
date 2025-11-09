@@ -2,7 +2,7 @@ import { v2 as cloudinary } from "cloudinary";
 import issueModel from "../models/issueModel.js";
 import userModel from "../models/userModel.js";
 import adminModel from "../models/adminModel.js";
-import employeeModel from "../models/employeeModel.js"; // <-- Import employeeModel
+import employeeModel from "../models/employeeModel.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 
@@ -12,7 +12,7 @@ const createToken = (userId, wardNumber) => {
     user: {
       id: userId,
       role: "user",
-      wardNumber: wardNumber, // <-- Add wardNumber to token
+      wardNumber: wardNumber,
     },
   };
   return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1d" });
@@ -44,14 +44,13 @@ const registerUser = async (req, res) => {
     });
     const user = await newUser.save();
 
-    // Create token AND userInfo object
     const token = createToken(user._id, user.wardNumber);
     const userInfo = {
       userid: user.userid,
       wardNumber: user.wardNumber,
     };
 
-    res.json({ success: true, token, userInfo }); // <-- Return userInfo
+    res.json({ success: true, token, userInfo });
   } catch (error) {
     console.log(error);
     res
@@ -77,14 +76,13 @@ const loginUser = async (req, res) => {
         .json({ success: false, message: "Invalid credentials" });
     }
 
-    // Create token AND userInfo object
     const token = createToken(user._id, user.wardNumber);
     const userInfo = {
       userid: user.userid,
       wardNumber: user.wardNumber,
     };
 
-    res.json({ success: true, token, userInfo }); // <-- Return userInfo
+    res.json({ success: true, token, userInfo });
   } catch (error) {
     console.log(error);
     res.status(500).json({ success: false, message: "Error during login" });
@@ -106,7 +104,6 @@ const addIssue = async (req, res) => {
     });
     const imageUrl = imageUpload.secure_url;
 
-    // Find user from token (authMiddleware) to get their wardNumber
     const user = await userModel.findById(req.user.id);
     if (!user) {
       return res
@@ -117,20 +114,54 @@ const addIssue = async (req, res) => {
     const issueData = {
       issueTitle,
       category,
-      location, // User-provided string
-      wardNumber: user.wardNumber, // <-- Auto-tag issue with user's ward
+      location,
+      wardNumber: user.wardNumber,
       description,
       image: imageUrl,
       user: req.user.id,
     };
-
     const newIssue = new issueModel(issueData);
     await newIssue.save();
-
     res.json({ success: true, message: "issue added" });
   } catch (error) {
     console.log(error);
     res.json({ success: false, message: error.message });
+  }
+};
+
+// --- API for liking/unliking an issue ---
+const likeIssue = async (req, res) => {
+  try {
+    const issueId = req.params.id;
+    const userId = req.user.id;
+
+    const issue = await issueModel.findById(issueId);
+    if (!issue) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Issue not found" });
+    }
+
+    let updatedIssue;
+    if (issue.likes.includes(userId)) {
+      // UNLIKE
+      updatedIssue = await issueModel.findByIdAndUpdate(
+        issueId,
+        { $pull: { likes: userId }, $inc: { likeCount: -1 } },
+        { new: true }
+      );
+    } else {
+      // LIKE
+      updatedIssue = await issueModel.findByIdAndUpdate(
+        issueId,
+        { $addToSet: { likes: userId }, $inc: { likeCount: 1 } },
+        { new: true }
+      );
+    }
+    res.json({ success: true, data: updatedIssue });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -162,13 +193,15 @@ const getIssueById = async (req, res) => {
   }
 };
 
-// --- API for getting the user's own issues ---
+// --- API for getting the user's own issues (UPDATED) ---
 const getMyIssues = async (req, res) => {
   try {
     const userId = req.user.id;
     const issues = await issueModel
       .find({ user: userId })
+      .populate("assignedTo", "name department") // <-- Populates assigned employee
       .sort({ createdAt: -1 });
+
     res.json({ success: true, data: issues });
   } catch (error) {
     console.log(error);
@@ -178,21 +211,51 @@ const getMyIssues = async (req, res) => {
   }
 };
 
-// --- API for liking an issue ---
-const likeIssue = async (req, res) => {
+// --- API for a user to delete their *own* issue (NEW) ---
+const deleteMyIssue = async (req, res) => {
   try {
-    const issue = await issueModel.findById(req.params.id);
+    const issueId = req.params.id;
+    const userId = req.user.id;
+
+    // Find the issue
+    const issue = await issueModel.findById(issueId);
     if (!issue) {
       return res
         .status(404)
         .json({ success: false, message: "Issue not found" });
     }
-    const updatedIssue = await issueModel.findByIdAndUpdate(
-      req.params.id,
-      { $inc: { likeCount: 1 } },
-      { new: true }
-    );
-    res.json({ success: true, likeCount: updatedIssue.likeCount });
+
+    // Security Check: Make sure the user owns this issue
+    if (issue.user.toString() !== userId) {
+      return res
+        .status(401)
+        .json({
+          success: false,
+          message: "User not authorized to delete this issue",
+        });
+    }
+
+    // Only allow deleting if it's still 'Pending'
+    if (issue.status !== "Pending") {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Cannot cancel an issue that is already in progress.",
+        });
+    }
+
+    // If assigned, decrement employee's count (if it was somehow assigned)
+    if (issue.assignedTo) {
+      await employeeModel.findByIdAndUpdate(issue.assignedTo, {
+        $inc: { assignedComplaintsCount: -1 },
+      });
+    }
+
+    // Delete the issue
+    await issueModel.findByIdAndDelete(issueId);
+
+    res.json({ success: true, message: "Complaint successfully cancelled" });
   } catch (error) {
     console.log(error);
     res.status(500).json({ success: false, message: "Server error" });
@@ -248,7 +311,7 @@ const getMyWardEmployees = async (req, res) => {
     const employees = await employeeModel
       .find({
         wardNumber: userWardNumber,
-        status: "Active", // Only show active employees
+        status: "Active",
       })
       .select("-password -role");
     res.json({ success: true, data: employees });
@@ -269,17 +332,13 @@ const getMyWardStats = async (req, res) => {
         .status(400)
         .json({ success: false, message: "User is not assigned to a ward." });
     }
-
     const startOfMonth = new Date(
       new Date().getFullYear(),
       new Date().getMonth(),
       1
     );
-
     const stats = await issueModel.aggregate([
-      {
-        $match: { wardNumber: userWardNumber }, // Filter by the user's ward
-      },
+      { $match: { wardNumber: userWardNumber } },
       {
         $facet: {
           totalComplaints: [{ $count: "count" }],
@@ -290,53 +349,64 @@ const getMyWardStats = async (req, res) => {
           resolvedThisMonth: [
             {
               $match: {
-                status: { $in: ["Resolved", "Closed"] }, // Count both
+                status: { $in: ["Resolved", "Closed"] },
                 updatedAt: { $gte: startOfMonth },
               },
             },
             { $count: "count" },
           ],
           avgResolutionTime: [
-            {
-              $match: { status: { $in: ["Resolved", "Closed"] } },
-            },
+            { $match: { status: { $in: ["Resolved", "Closed"] } } },
             {
               $project: {
                 resolutionTime: { $subtract: ["$updatedAt", "$createdAt"] },
               },
             },
-            {
-              $group: {
-                _id: null,
-                avgTime: { $avg: "$resolutionTime" },
-              },
-            },
+            { $group: { _id: null, avgTime: { $avg: "$resolutionTime" } } },
           ],
         },
       },
     ]);
-
     const getCount = (arr) => arr[0]?.count || 0;
     const getAvgDays = (arr) => {
       if (!arr[0] || !arr[0].avgTime) return 0;
-      const avgMs = arr[0].avgTime;
-      const avgDays = avgMs / (1000 * 60 * 60 * 24); // Convert ms to days
-      return avgDays.toFixed(1); // Return as "4.2"
+      return (arr[0].avgTime / (1000 * 60 * 60 * 24)).toFixed(1);
     };
-
     const finalStats = {
       totalComplaints: getCount(stats[0].totalComplaints),
       pendingComplaints: getCount(stats[0].pendingComplaints),
       resolvedThisMonth: getCount(stats[0].resolvedThisMonth),
       avgResolutionTime: getAvgDays(stats[0].avgResolutionTime),
     };
-
     res.json({ success: true, data: finalStats });
   } catch (error) {
     console.log(error);
     res
       .status(500)
       .json({ success: false, message: "Error fetching ward stats" });
+  }
+};
+
+// --- API for user to get all issues for *their* ward ---
+const getMyWardIssues = async (req, res) => {
+  try {
+    const userWardNumber = req.user.wardNumber;
+    if (!userWardNumber) {
+      return res
+        .status(400)
+        .json({ success: false, message: "User is not assigned to a ward." });
+    }
+    const issues = await issueModel
+      .find({ wardNumber: userWardNumber })
+      .populate("user", "userid")
+      .populate("assignedTo", "name department") // Also populate employee
+      .sort({ createdAt: -1 });
+    res.json({ success: true, data: issues });
+  } catch (error) {
+    console.log(error);
+    res
+      .status(500)
+      .json({ success: false, message: "Error fetching ward issues" });
   }
 };
 
@@ -353,4 +423,6 @@ export {
   getMyWardAdmin,
   getMyWardEmployees,
   getMyWardStats,
+  getMyWardIssues,
+  deleteMyIssue,
 };

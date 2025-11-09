@@ -2,30 +2,45 @@ import Color from "./Color";
 import { Header } from "./heading";
 import "./subcomp.css";
 import { Subissue } from "./subissues";
-import React, { useState, useRef, useMemo } from "react"; // <-- 1. Import useMemo
+import React, { useState, useRef, useMemo } from "react";
 import api from "../api";
+import { CircularProgress } from "@mui/material"; // Import spinner
 
-const SubComplain = ({ issues }) => {
+// 1. Accept all props from UserHome
+const SubComplain = ({
+  issues,
+  onLikeToggle,
+  currentUserId,
+  onIssueSubmit,
+  onDeleteIssue,
+}) => {
   const sStyle = {
     maxHeight: "calc(100vh - 120px)",
     overflowY: "auto",
     padding: "1rem",
   };
 
+  // --- State for the form ---
   const [issueTitle, setIssueTitle] = useState("");
   const [category, setCategory] = useState("");
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
   const [image, setImage] = useState(null);
   const fileInputRef = useRef(null);
+  const [isSubmitting, setIsSubmitting] = useState(false); // For loading spinner
 
+  // --- 2. REMOVED all data fetching and 'like' logic ---
+  // (This is now handled by UserHome)
+
+  // --- Handle form submission ---
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!image) {
       alert("Please upload an image.");
       return;
     }
+
+    setIsSubmitting(true); // <-- 3. Start loading spinner
 
     const formData = new FormData();
     formData.append("issueTitle", issueTitle);
@@ -36,9 +51,9 @@ const SubComplain = ({ issues }) => {
 
     try {
       const response = await api.post("/user/add-issue", formData);
-
       if (response.data.success) {
         alert("Complaint submitted successfully!");
+        // Clear the form
         setIssueTitle("");
         setCategory("");
         setLocation("");
@@ -47,21 +62,24 @@ const SubComplain = ({ issues }) => {
         if (fileInputRef.current) {
           fileInputRef.current.value = null;
         }
+
+        // 4. Call the function from UserHome to refresh all data
+        onIssueSubmit();
       }
     } catch (error) {
       alert("Error submitting complaint: " + error.response.data.message);
+    } finally {
+      setIsSubmitting(false); // <-- 5. Stop loading spinner
     }
   };
 
-  // --- 2. Filter the issues list based on the 'category' state ---
+  // --- Filter the 'issues' prop based on the 'category' state ---
   const filteredIssues = useMemo(() => {
     if (!category) {
-      // If category is "" (the "Select a category" default)
-      return issues; // Return the full, unfiltered list
+      return issues;
     }
-    // Otherwise, return only the issues that match the selected category
     return issues.filter((issue) => issue.category === category);
-  }, [category, issues]); // Re-filter when category or issues change
+  }, [category, issues]);
 
   return (
     <form style={sStyle} onSubmit={handleSubmit}>
@@ -74,8 +92,13 @@ const SubComplain = ({ issues }) => {
         <div id="reccomp" style={{ backgroundColor: Color.primary }}>
           <h3 style={{ color: "white" }}>Recent community Issues</h3>
 
-          {/* --- 3. Pass the new 'filteredIssues' list --- */}
-          <Subissue issues={filteredIssues} />
+          {/* --- 6. Pass all props down to Subissue --- */}
+          <Subissue
+            issues={filteredIssues}
+            onLikeToggle={onLikeToggle}
+            userId={currentUserId}
+            onDeleteIssue={onDeleteIssue} // <-- Pass this down
+          />
         </div>
 
         <div id="complaintinput" style={{ backgroundColor: Color.primary }}>
@@ -89,20 +112,22 @@ const SubComplain = ({ issues }) => {
               placeholder="Brief title"
               value={issueTitle}
               onChange={(e) => setIssueTitle(e.target.value)}
+              disabled={isSubmitting} // Disable when loading
             />
             <h4>Select a Category*</h4>
-            {/* This dropdown now controls both the form and the filter */}
             <select
               id="category"
               required
               value={category}
               onChange={(e) => setCategory(e.target.value)}
+              disabled={isSubmitting} // Disable when loading
             >
               <option value="">-- Select a category --</option>
               <option value="Water Supply">Water Supply</option>
               <option value="Electricity">Electricity</option>
               <option value="Roads">Roads</option>
-              <option value="Corporation">Corporation</option>
+              <option value="Sanitation">Sanitation</option>
+              <option value="Infrastructure">Infrastructure</option>
             </select>
             <h4>Location</h4>
             <input
@@ -112,6 +137,7 @@ const SubComplain = ({ issues }) => {
               placeholder="Enter Location"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
+              disabled={isSubmitting} // Disable when loading
             />
           </div>
 
@@ -126,6 +152,7 @@ const SubComplain = ({ issues }) => {
               placeholder="Brief description here"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              disabled={isSubmitting} // Disable when loading
             />
           </div>
         </div>
@@ -145,6 +172,7 @@ const SubComplain = ({ issues }) => {
               required
               ref={fileInputRef}
               onChange={(e) => setImage(e.target.files[0])}
+              disabled={isSubmitting} // Disable when loading
             />
             <div
               id="imgtips"
@@ -158,12 +186,25 @@ const SubComplain = ({ issues }) => {
           </div>
         </div>
       </div>
+
+      {/* --- 7. Update Submit Button --- */}
       <button
         id="submitComplaint"
         type="Submit"
-        style={{ backgroundColor: Color.primary, color: Color.secondary }}
+        style={{
+          backgroundColor: Color.primary,
+          color: Color.secondary,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+        disabled={isSubmitting} // Disable when loading
       >
-        Submit Complaint
+        {isSubmitting ? (
+          <CircularProgress size={24} color="inherit" />
+        ) : (
+          "Submit Complaint"
+        )}
       </button>
     </form>
   );

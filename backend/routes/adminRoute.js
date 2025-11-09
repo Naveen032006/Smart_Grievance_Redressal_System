@@ -1,23 +1,55 @@
-import express from 'express';
+import express from "express";
 // Import your new controller and middleware
-import { loginAdmin, updateIssueStatus,getIssuesForAdmin,createEmployee,getAllEmployees,updateEmployeeStatus } from '../controllers/adminController.js';
-import {authMiddleware,adminOnlyMiddleware} from '../middlewares/auth.js';
+import {
+  loginAdmin,
+  updateIssue,
+  getIssuesForAdmin,
+  createEmployee,
+  getAllEmployees,
+  updateEmployeeStatus,
+} from "../controllers/adminController.js";
+import { authMiddleware, adminOnlyMiddleware } from "../middlewares/auth.js";
 
 const adminRouter = express.Router();
 
 // Public route
-adminRouter.post('/login', loginAdmin);
+adminRouter.post("/login", loginAdmin);
 
 // Protected route
 // The authMiddleware will run FIRST. If it passes, updateIssueStatus will run next.
-adminRouter.patch('/issue/:id', authMiddleware, adminOnlyMiddleware, updateIssueStatus);
-adminRouter.get('/issues', authMiddleware, adminOnlyMiddleware, getIssuesForAdmin);
+adminRouter.patch(
+  "/issue/:id",
+  authMiddleware,
+  adminOnlyMiddleware,
+  updateIssue
+);
+adminRouter.get(
+  "/issues",
+  authMiddleware,
+  adminOnlyMiddleware,
+  getIssuesForAdmin
+);
 
 // Admin route to create a new employee
-adminRouter.post('/employee', authMiddleware, adminOnlyMiddleware, createEmployee);
+adminRouter.post(
+  "/employee",
+  authMiddleware,
+  adminOnlyMiddleware,
+  createEmployee
+);
 
-adminRouter.get('/employees', authMiddleware, adminOnlyMiddleware, getAllEmployees);
+adminRouter.get(
+  "/employees",
+  authMiddleware,
+  adminOnlyMiddleware,
+  getAllEmployees
+);
 
-adminRouter.patch('/employee/:id/status', authMiddleware, adminOnlyMiddleware, updateEmployeeStatus);
+adminRouter.patch(
+  "/employee/:id/status",
+  authMiddleware,
+  adminOnlyMiddleware,
+  updateEmployeeStatus
+);
 
 export default adminRouter;
