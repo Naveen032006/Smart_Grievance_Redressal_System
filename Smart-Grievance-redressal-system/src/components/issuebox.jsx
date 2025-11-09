@@ -7,14 +7,24 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import { alpha } from "@mui/material/styles";
 import ReportProblemOutlinedIcon from "@mui/icons-material/ReportProblemOutlined";
 import Color from "./Color";
+const getPriorityFromCount = (count) => {
+  if (count > 5) {
+    return { label: "High", color: "error" };
+  }
+  if (count > 3) {
+    return { label: "Medium", color: "warning" };
+  }
+  return { label: "Low", color: "info" };
+};
+
 export function IssueBox({
   label,
-  discription,
-  catogory,
+  description,
+  category,
   status,
-  priority,
   date,
   location,
+  likeCount,
 }) {
   console.log(label);
   const getcolor = (status) => {
@@ -32,7 +42,7 @@ export function IssueBox({
     }
   };
 
-  const getPcolor = (priority) => {
+  /*const getPcolor = (priority) => {
     switch (priority?.toLowerCase()) {
       case "high":
         return "error";
@@ -43,7 +53,7 @@ export function IssueBox({
       default:
         return "info";
     }
-  };
+  };*/
   const getIcon = (status) => {
     switch (status?.toLowerCase()) {
       case "pending":
@@ -59,7 +69,7 @@ export function IssueBox({
     }
   };
   const Icon = getIcon(status);
-
+  const priority = getPriorityFromCount(likeCount);
   return (
     <>
       <Paper
@@ -88,19 +98,19 @@ export function IssueBox({
           </Stack>
 
           <Chip
-            label={priority}
+            label={priority.label}
             variant="outlined"
             sx={{
               textDecoration: "none",
               backgroundColor: (theme) =>
-                alpha(theme.palette[getPcolor(priority)].main, 0.8),
+                alpha(theme.palette[priority.color].main, 0.8),
               color: Color.secondary,
             }}
           />
         </Stack>
         <Stack>
           <Typography variant="body1" sx={{ padding: "5px" }}>
-            {discription}
+            {description}
           </Typography>
         </Stack>
         <Box sx={{ display: "flex", justifyContent: "space-between" }}>
@@ -111,7 +121,7 @@ export function IssueBox({
             sx={{ textDecoration: "none" }}
           />
           <Chip
-            label={catogory}
+            label={category}
             variant="outlined"
             sx={{ textDecoration: "none" }}
           />

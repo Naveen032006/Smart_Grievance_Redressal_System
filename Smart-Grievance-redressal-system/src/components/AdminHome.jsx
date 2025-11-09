@@ -2,7 +2,8 @@ import Nav from "./Nav";
 import Mycomplain from "./Mycomplain";
 import Analytics from "./Analytics";
 import OverView from "./OverView";
-import axios from "axios";
+// import axios from "axios"; // We won't use axios directly
+import api from "../api"; // <-- 1. Import your API client (path may need adjusting)
 import Resolve from "./Resolve";
 
 import { useEffect, useState } from "react";
@@ -18,17 +19,29 @@ function AdminHome({
   navOpen,
   setNavOpen,
 }) {
-  const [section, setSection] = useState("overview"); // 'overview' | 'subcomplain' | 'mycomplain' | 'analytics'
+  const [section, setSection] = useState("overview");
   const [issues, setIssues] = useState([]);
+  const [employees, setEmployees] = useState([]); // <-- 2. Add state for employees
   const [loading, setLoading] = useState(true);
 
-  const loadIssues = useCallback(async () => {
-    console.log("Re-fetching issues...");
+  // 3. Renamed to 'fetchData' and updated to fetch everything
+  const fetchData = useCallback(async () => {
+    console.log("Re-fetching all admin data...");
     setLoading(true);
     try {
-      const response = await axios.get("http://localhost:4000/api/user/issues");
-      const issues = response.data?.data || [];
-      setIssues(issues);
+      // 4. Use Promise.all to fetch issues and employees in parallel
+      const [issuesRes, employeesRes] = await Promise.all([
+        api.get("/user/issues"),    // <-- Use protected admin endpoint
+        api.get("/admin/employees") // <-- Fetch employees
+      ]);
+
+      if (issuesRes.data.success) {
+        setIssues(issuesRes.data.data || []);
+      }
+      if (employeesRes.data.success) {
+        setEmployees(employeesRes.data.data || []);
+      }
+
     } catch (error) {
       if (error.response) {
         console.error("Server responded with an error:", error.response.data);
@@ -40,12 +53,12 @@ function AdminHome({
     } finally {
       setLoading(false);
     }
-  }, []); // Empty dependency array means this function itself never changes
+  }, []); // Empty dependency array is correct
 
-  // 3. Your useEffect now just calls the function on mount
+  // 5. useEffect now calls fetchData
   useEffect(() => {
-    loadIssues();
-  }, [loadIssues]);
+    fetchData();
+  }, [fetchData]);
 
   return (
     <div className="AdminBody">
@@ -76,7 +89,8 @@ function AdminHome({
             <Resolve
               AdminId={AdminId}
               issues={issues}
-              onUpdateSuccess={loadIssues}
+              employees={employees} // <-- 6. Pass employees to Resolve
+              onUpdateSuccess={fetchData} // <-- Pass the correct function name
             />
           </div>
         )}

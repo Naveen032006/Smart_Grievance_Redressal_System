@@ -26,7 +26,7 @@ const Mycomplain = ({ role }) => {
   const [error, setError] = useState(null);
 
   // --- 2. This fetchIssues function is now fixed ---
-  async function fetchIssues() {
+  async function fetchMyIssues() {
     try {
       let res;
       if (role === "user") {
@@ -48,7 +48,7 @@ const Mycomplain = ({ role }) => {
       setLoading(true);
       setError(null);
       try {
-        const data = await fetchIssues();
+        const data = await fetchMyIssues();
         setIssues(data);
       } catch (err) {
         setError("Failed to fetch issues");
@@ -59,7 +59,6 @@ const Mycomplain = ({ role }) => {
     loadIssues();
   }, [role]);
 
-  // --- 3. Your filtering logic is perfect (no change needed) ---
   const filteredIssues = issues
     .filter((issue) => {
       if (complaintId && !issue._id.includes(complaintId)) return false;
@@ -83,22 +82,68 @@ const Mycomplain = ({ role }) => {
         showicon={true}
         role={role}
       />
-      
+
       {/* --- Filter Bar (all correct) --- */}
       <form
         className="sbar"
         style={{
-          /* ... styles */
+          backgroundColor: Color.primary,
+          height: "100px",
+          display: "flex",
+          borderRadius: "20px",
+          justifyContent: "center",
+          maxWidth: "90%",
+          overflowX: "auto",
+          margin: "20px auto",
         }}
       >
-        {/* ... all your inputs ... */}
+        <input
+          id="compid"
+          placeholder="Enter complaint id"
+          value={complaintId}
+          onChange={(e) => setComplaintId(e.target.value)}
+        />
+
+        <select
+          id="options"
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+        >
+          <option value="">--All Categories--</option>
+          <option value="Water Supply">Water Supply</option>
+          <option value="Electricity">Electricity</option>
+          <option value="Roads">Roads</option>
+          <option value="Corporation">Corporation</option>
+          {/* Add all your categories here */}
+        </select>
+
+        <select
+          id="status"
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+        >
+          <option value="">--All Statuses--</option>
+          <option value="Pending">Pending</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Resolved">Resolved</option>
+          <option value="Rejected">Rejected</option>
+        </select>
+
+        <select
+          id="arrange"
+          value={order}
+          onChange={(e) => setOrder(e.target.value)}
+        >
+          <option value="Newest First">Newest First</option>
+          <option value="Oldest First">Oldest First</option>
+        </select>
       </form>
 
       <Box sx={{ overflowY: "auto" }}>
         <Mycomplainwrap
           role={role}
           // Pass the filtered list to the child
-          issues={filteredIssues} 
+          issues={filteredIssues}
         />
       </Box>
     </div>

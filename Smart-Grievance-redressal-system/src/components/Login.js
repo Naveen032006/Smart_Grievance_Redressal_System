@@ -1,54 +1,59 @@
 import { useState } from "react";
 import Sign from "./Sign";
 import "./log.css";
-
-
 import Color from "./Color";
-import axios from "axios"; // <-- 1. Import axios
+import axios from "axios"; 
 
 function Login({ userdata, loginset, text, role }) {
-  const [userid,setuserid]=useState("")
+  const [userid, setuserid] = useState("");
   const [pass, setpass] = useState("");
 
-  // 2. Make this function async to use 'await'
   const handlesubmit = async (e) => {
     e.preventDefault();
 
-    // 3. Determine which backend URL to call
     const loginUrl =
       role === "user"
         ? "http://localhost:4000/api/user/login"
         : "http://localhost:4000/api/admin/login";
 
     try {
-      // 4. Call your backend API
       const response = await axios.post(loginUrl, {
         userid: userid,
-        password: pass, // Your state is 'pass', backend expects 'password'
+        password: pass,
       });
 
       if (response.data.success) {
-        // 5. Get and save the token
-        const token = response.data.token;
+        // Get all data from the successful response
+        const { token, userInfo, adminInfo } = response.data;
+
+        // 1. Save the token
         localStorage.setItem("token", token);
 
-        // 6. Tell App.js to update the state (your code already does this)
-        userdata(userid);
+        // 2. Save the user's info (whether user or admin)
+        // This is the CRITICAL step for the Ward.jsx page to work
+        if (userInfo) {
+          // If it's a regular user
+          localStorage.setItem('userInfo', JSON.stringify(userInfo));
+          userdata(userInfo.userid); // Set navbar name
+        } else if (adminInfo) {
+          // If it's an admin
+          localStorage.setItem('userInfo', JSON.stringify(adminInfo));
+          userdata(adminInfo.name); // Set navbar name
+        }
+
+        // 3. Hide the login screen
         loginset(false);
       }
     } catch (error) {
-      // 7. Show a real error message from the backend
       console.error("Login failed:", error);
       alert(error.response.data.message);
     }
   };
 
-  console.log("userdata prop:", setuserid);
- 
-
   const [sign, setsign] = useState(false);
 
   return sign ? (
+    // Pass userdata and loginset to Sign component
     <Sign userdata={userdata} loginset={loginset} />
   ) : (
     <form
@@ -61,6 +66,7 @@ function Login({ userdata, loginset, text, role }) {
         id="userid"
         type="text"
         placeholder="Enter user id"
+        value={userid}
         onChange={(e) => setuserid(e.target.value)}
       />
       <h2>password:</h2>
@@ -68,6 +74,7 @@ function Login({ userdata, loginset, text, role }) {
         type="password"
         id="password"
         placeholder="Enter password"
+        value={pass}
         onChange={(e) => setpass(e.target.value)}
       />
       <br />
@@ -79,10 +86,8 @@ function Login({ userdata, loginset, text, role }) {
           opacity: userid ? 1 : 0.4,
         }}
       >
-        {" "}
         Submit
       </button>
-      {console.log(role)}
       {role === "user" && (
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <h4 style={{ color: Color.supreme }}>Don't you have an account?</h4>

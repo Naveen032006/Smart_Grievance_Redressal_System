@@ -1,7 +1,7 @@
 import { Paper, Typography } from "@mui/material";
 import { SubissueBox } from "./subissuebox";
 
-export function Subissue({ issues }) {
+export function Subissue({ issues, onLikeToggle }) {
   const recentIssues = issues.slice(0, 3);
   return (
     <Paper
@@ -22,20 +22,12 @@ export function Subissue({ issues }) {
         {issues.length === 0 ? (
           <Typography variant="body1">No issues reported yet.</Typography>
         ) : (
-          recentIssues.map((issues) => {
+          recentIssues.map((issue) => {
             return (
               <SubissueBox
-                label={issues.issueTitle}
-                discription={issues.description}
-                catogory={issues.category}
-                status={issues.status}
-                priority={issues.priority}
-                date={new Date(issues.updatedAt).toLocaleDateString("en-IN", {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
-                })}
-                location={issues.location}
+                key={issue._id}
+                issue={issue}
+                onLikeToggle={onLikeToggle}
               />
             );
           })

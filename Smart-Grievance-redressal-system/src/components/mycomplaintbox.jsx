@@ -30,7 +30,6 @@ export function Mycomplainbox({
   discription,
   catogory,
   status,
-  priority,
   date,
   location,
   response,
@@ -38,6 +37,7 @@ export function Mycomplainbox({
   selectedImage,
   role,
   setstatus,
+  likeCount,
 }) {
   const [pop, setpop] = useState(false);
   const [SStatus, setSStatus] = useState(status);
@@ -61,18 +61,16 @@ export function Mycomplainbox({
     }
   };
 
-  const getPcolor = (priority) => {
-    switch (priority?.toLowerCase()) {
-      case "high":
-        return "error";
-      case "medium":
-        return "warning";
-      case "low":
-        return "info";
-      default:
-        return "info";
+  const getPriorityFromCount = (count) => {
+    if (count > 5) {
+      return { label: "High", color: "error" };
     }
+    if (count > 3) {
+      return { label: "Medium", color: "warning" };
+    }
+    return { label: "Low", color: "info" };
   };
+
   const getIcon = (SStatus) => {
     switch (SStatus?.toLowerCase()) {
       case "pending":
@@ -88,7 +86,7 @@ export function Mycomplainbox({
     }
   };
   const Icon = getIcon(SStatus);
-
+  const priority = getPriorityFromCount(likeCount);
   return (
     <>
       <Paper elevation={1} sx={{ borderRadius: "16px", p: 2, m: 2 }}>
@@ -100,12 +98,12 @@ export function Mycomplainbox({
             </Typography>
           </Stack>
           <Chip
-            label={priority}
+            label={priority.label}
             variant="outlined"
             sx={{
               textDecoration: "none",
               backgroundColor: (theme) =>
-                alpha(theme.palette[getPcolor(priority)].main, 0.8),
+                alpha(theme.palette[priority.color].main, 0.8),
               color: Color.secondary,
             }}
           />
@@ -214,12 +212,12 @@ export function Mycomplainbox({
               {label}
             </Typography>
             <Chip
-              label={priority}
+              label={priority.label}
               variant="outlined"
               sx={{
                 textDecoration: "none",
                 backgroundColor: (theme) =>
-                  alpha(theme.palette[getPcolor(priority)].main, 0.8),
+                  alpha(theme.palette[priority.color].main, 0.8),
                 color: Color.secondary,
               }}
             />
